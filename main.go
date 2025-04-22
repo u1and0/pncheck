@@ -1,11 +1,13 @@
 package main
 
-import "time"
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+)
 
 // --- コンパイルを通すための仮定義 ---
-// 実際には適切なパッケージをimportしてください
-// errorsは必要なのでimport
-
 type OrderType string // 仮定義
 
 var db struct { // 仮定義（パッケージ名を模倣）
@@ -90,6 +92,108 @@ type (
 	}
 )
 
-const defaultErrorFileName = "error_report.log" // エラーレポートのデフォルトファイル名
-const apiEndpointPath = "/confirm"              // APIのエンドポイントパス (固定値とする)
-var defaultTimeout = 30 * time.Second           // API通信のデフォルトタイムアウト
+const (
+	defaultErrorFileName = "error_report.log" // エラーレポートのデフォルトファイル名
+	apiEndpointPath      = "/confirm"         // APIのエンドポイントパス (固定値とする)
+	successDirName       = "success"          // 成功ファイルを移動するディレクトリ名
+)
+
+var defaultTimeout = 30 * time.Second // API通信のデフォルトタイムアウト
+
+func main() {
+	// 1. コマンドライン引数を解析
+	filePaths, err := parseArguments()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "エラー: %v\n", err)
+		os.Exit(1) // 引数エラーは終了コード1
+	}
+
+	// (任意) ビルド時にサーバーアドレスが設定されているかチェック
+	if pnsearchServerAddress == "" {
+		fmt.Fprintln(os.Stderr, "エラー: APIサーバーアドレスが設定されていません。")
+		fmt.Fprintln(os.Stderr, "       ビルド時に -ldflags=\"-X main.pnsearchServerAddress=http://...\" で指定してください。")
+		os.Exit(1)
+	}
+
+	// 2. 処理結果を格納するスライスを初期化
+	results := make([]FileProcessResult, 0, len(filePaths))
+
+	// 3. 各ファイルを処理
+	fmt.Printf("処理を開始します... (%d ファイル)\n", len(filePaths))
+	successCount := 0
+	errorFound := false // 全体でエラーがあったかを示すフラグ
+
+	// 成功ファイルを移動するディレクトリを作成 (存在してもエラーにならない)
+	err = os.MkdirAll(successDirName, 0755)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "警告: 成功ファイル移動先ディレクトリ '%s' の作成に失敗しました: %v\n", successDirName, err)
+		// エラーでも処理は続行する（ファイル移動はスキップされる）
+	}
+
+	for i, filePath := range filePaths {
+		fmt.Printf("[%d/%d] 処理中: %s ... ", i+1, len(filePaths), filepath.Base(filePath))
+
+		// 3a. 1つのファイルを処理
+		result := processExcelFile(filePath)
+		results = append(results, result)
+
+		// 3b. 結果表示と成功ファイル移動
+		if result.IsSuccess {
+			if result.ValidationError {
+				fmt.Println("NG (検証エラーあり)")
+				errorFound = true
+			} else {
+				fmt.Println("OK")
+				successCount++
+				// ファイル移動処理
+				if err == nil { // successDirName の作成に成功していれば
+					err := moveFileToSuccess(filePath, successDirName)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "  警告: ファイル '%s' の移動に失敗しました: %v\n", filepath.Base(filePath), err)
+					} else {
+						fmt.Printf("  -> '%s' へ移動しました。\n", successDirName)
+					}
+				}
+			}
+		} else {
+			fmt.Println("エラー (処理失敗)")
+			errorFound = true
+		}
+	}
+
+	fmt.Println("----------------------------------------")
+	fmt.Println("処理結果:")
+
+	// 4. 全体の結果を集約
+	aggregated := aggregateResults(results)
+
+	// 5. エラーレポートをファイルに出力
+	if aggregated.ProcessErrorFiles > 0 || aggregated.InvalidFiles > 0 {
+		err = writeErrorFile(aggregated, defaultErrorFileName)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "エラーレポートファイル '%s' の書き込みに失敗しました: %v\n", defaultErrorFileName, err)
+			errorFound = true // レポート書き込み失敗もエラーとみなす
+		} else {
+			fmt.Printf("エラーの詳細を '%s' に出力しました。\n", defaultErrorFileName)
+		}
+	} else {
+		fmt.Println("エラーはありませんでした。")
+	}
+
+	// 6. サマリー表示
+	fmt.Printf("  総ファイル数: %d\n", aggregated.TotalFiles)
+	fmt.Printf("  正常処理ファイル数: %d\n", aggregated.SuccessFiles)
+	fmt.Printf("    - 検証OK (移動済み): %d\n", successCount) // 移動成功数で表示
+	fmt.Printf("    - 検証NG: %d\n", aggregated.InvalidFiles)
+	fmt.Printf("  処理エラーファイル数: %d\n", aggregated.ProcessErrorFiles)
+	fmt.Println("----------------------------------------")
+
+	// 7. 終了コード設定
+	if errorFound {
+		fmt.Println("エラーが発生したため、終了コード 1 で終了します。")
+		os.Exit(1)
+	} else {
+		fmt.Println("正常に終了しました。")
+		os.Exit(0)
+	}
+}
