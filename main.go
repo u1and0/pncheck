@@ -93,9 +93,9 @@ type (
 )
 
 const (
-	defaultErrorFileName = "error_report.log" // エラーレポートのデフォルトファイル名
-	apiEndpointPath      = "/confirm"         // APIのエンドポイントパス (固定値とする)
-	successDirName       = "success"          // 成功ファイルを移動するディレクトリ名
+	defaultErrorFileName = "error_report.log"         // エラーレポートのデフォルトファイル名
+	apiEndpointPath      = "/api/v1/requests/confirm" // APIのエンドポイントパス (固定値とする)
+	successDirName       = "success"                  // 成功ファイルを移動するディレクトリ名
 )
 
 var defaultTimeout = 30 * time.Second // API通信のデフォルトタイムアウト

@@ -22,8 +22,8 @@ const (
 	requestDateCell = "D4" // 要求年月日
 	projectNameCell = "D5" // 製番名称
 	noteCell        = "D6" // 備考
-	userSectionCell = "P5" // 要求元 (※要確認: 印刷シートから転記されている想定)
-	orderTypeCell   = "B2" // 発注区分 (※要確認: 書き込みコードに該当なし、テンプレート依存の可能性大)
+	// userSectionCell = "P5" // 要求元 (※要確認: 印刷シートから転記されている想定)
+	// orderTypeCell   = "B2" // 発注区分 (※要確認: 書き込みコードに該当なし、テンプレート依存の可能性大)
 
 	// --- Order セル位置 (入力Ⅰ) ---
 	ordersStartRow = 2   // 明細行が始まる行
@@ -70,7 +70,7 @@ func readExcelToSheet(filePath string) (Sheet, error) {
 	sheet.Header.FileName = filepath.Base(filePath)
 
 	// 発注区分 (※要確認セル)
-	sheet.Header.OrderType = OrderType(getCellValue(f, headerSheetName, orderTypeCell))
+	// sheet.Header.OrderType = OrderType(getCellValue(f, headerSheetName, orderTypeCell))
 
 	// 製番 (親番のみ読み取り)
 	pidStr := getCellValue(f, headerSheetName, projectIDCell)
@@ -93,7 +93,7 @@ func readExcelToSheet(filePath string) (Sheet, error) {
 	}
 
 	// 要求元 (※要確認セル)
-	sheet.Header.UserSection = getCellValue(f, headerSheetName, userSectionCell)
+	// sheet.Header.UserSection = getCellValue(f, headerSheetName, userSectionCell)
 	sheet.Header.Note = getCellValue(f, headerSheetName, noteCell)
 
 	// --- 明細行 (Orders) を読み込む (orderSheetName = "入力Ⅰ" から) ---
