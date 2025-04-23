@@ -107,7 +107,7 @@ func setValidLayout(f *excelize.File) {
 
 func TestReadExcelToSheet_Success(t *testing.T) {
 	testDir := "testdata_read" // testdata ディレクトリ名を変更
-	testFile := createTestExcelFile(t, testDir, "success_read.xlsx", setValidLayout)
+	testFile := createTestExcelFile(t, testDir, "success_read-K.xlsx", setValidLayout)
 
 	expectedSheet := Sheet{
 		Config: Config{Validatable: true, Sortable: false},
@@ -117,7 +117,7 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 			ProjectName: "テストプロジェクト",  // D5
 			RequestDate: "2023/10/27", // D4
 			Deadline:    "2023/11/30", // D2
-			FileName:    "success_read.xlsx",
+			FileName:    "success_read-K.xlsx",
 			// UserSection: "開発部",    // ※要確認セル P5
 			Note: "備考欄テスト", // D6
 		},
@@ -198,7 +198,7 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 }
 
 func TestReadExcelToSheet_FileNotFound(t *testing.T) {
-	_, err := readExcelToSheet("testdata_read/non_existent_file.xlsx")
+	_, err := readExcelToSheet("testdata_read/non_existent_file-K.xlsx")
 	if err == nil {
 		t.Fatal("ファイルが存在しない場合にエラーが返されませんでした。")
 	}
@@ -207,7 +207,7 @@ func TestReadExcelToSheet_FileNotFound(t *testing.T) {
 
 func TestReadExcelToSheet_InvalidNumberFormat_Header(t *testing.T) {
 	testDir := "testdata_read"
-	testFile := createTestExcelFile(t, testDir, "invalid_header_read.xlsx", func(f *excelize.File) {
+	testFile := createTestExcelFile(t, testDir, "invalid_header_read-K.xlsx", func(f *excelize.File) {
 		setValidLayout(f)
 		f.SetCellValue(headerSheetName, projectIDCell, "ABCDE") // D1に文字列
 	})
@@ -225,7 +225,7 @@ func TestReadExcelToSheet_InvalidNumberFormat_Header(t *testing.T) {
 
 func TestReadExcelToSheet_InvalidNumberFormat_Orders(t *testing.T) {
 	testDir := "testdata_read"
-	testFile := createTestExcelFile(t, testDir, "invalid_orders_read.xlsx", func(f *excelize.File) {
+	testFile := createTestExcelFile(t, testDir, "invalid_orders_read-K.xlsx", func(f *excelize.File) {
 		setValidLayout(f)
 		f.SetCellValue(orderSheetName, colQuantity+"2", "Not A Number") // 2行目の数量に文字列
 	})
@@ -243,7 +243,7 @@ func TestReadExcelToSheet_InvalidNumberFormat_Orders(t *testing.T) {
 
 func TestReadExcelToSheet_EmptySheet(t *testing.T) {
 	testDir := "testdata_read"
-	testFile := createTestExcelFile(t, testDir, "empty_sheet_read.xlsx", func(f *excelize.File) {
+	testFile := createTestExcelFile(t, testDir, "empty_sheet_read-K.xlsx", func(f *excelize.File) {
 		// ヘッダーだけ設定し、明細は空にする
 		f.SetCellValue(headerSheetName, projectIDCell, "99999")     // D1
 		f.SetCellValue(headerSheetName, projectNameCell, "空シートテスト") // D5
