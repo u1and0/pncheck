@@ -91,7 +91,7 @@ func TestConvertToJSON_EmptySheet(t *testing.T) {
 	}
 
 	// 空のJSON (`{"config":{},"header":{},"orders":null}` のような形になるはず)
-	expectedJSON := `{"config":{"validatable":false,"sortable":false},"header":{"発注区分":"","製番":0,"製番名称":"","要求年月日":"","製番納期":"","ファイル名":"","要求元":"","備考":""},"orders":null}`
+	expectedJSON := `{"config":{"validatable":false,"sortable":false},"header":{"発注区分":"","製番":0,"製番名称":"","要求年月日":"","製番納期":"","ファイル名":"","備考":""},"orders":null}`
 	// reflect.DeepEqual だと orders:null と orders:[] で差が出る可能性があるので文字列比較
 	if string(jsonData) != expectedJSON {
 		t.Errorf("空のSheetのJSONが期待値と異なります。\n期待値: %s\n実際値: %s", expectedJSON, string(jsonData))

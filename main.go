@@ -10,6 +10,13 @@ import (
 // --- コンパイルを通すための仮定義 ---
 type OrderType string // 仮定義
 
+const (
+	購入 OrderType = "購入"
+	外注 OrderType = "外注"
+	出庫 OrderType = "出庫"
+	不明 OrderType = "不明" // 不正な区分の場合
+)
+
 var db struct { // 仮定義（パッケージ名を模倣）
 	ProjectID int // 仮定義
 }
@@ -30,9 +37,9 @@ type (
 		RequestDate string `json:"要求年月日"`
 		Deadline    string `json:"製番納期"`
 
-		FileName    string `json:"ファイル名"`
-		UserSection string `json:"要求元"`
-		Note        string `json:"備考"`
+		FileName string `json:"ファイル名"`
+		// UserSection string `json:"要求元"`
+		Note string `json:"備考"`
 	}
 	// Order : 要求票の1行
 	Order struct {

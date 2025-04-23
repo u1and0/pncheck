@@ -70,7 +70,11 @@ func readExcelToSheet(filePath string) (Sheet, error) {
 	sheet.Header.FileName = filepath.Base(filePath)
 
 	// 発注区分 (※要確認セル)
-	// sheet.Header.OrderType = OrderType(getCellValue(f, headerSheetName, orderTypeCell))
+	orderType, err := parseFileNameInfo(filePath)
+	if err != nil {
+		return sheet, fmt.Errorf("ファイル名(%s)の解釈に失敗しました: %w", filePath, err)
+	}
+	sheet.Header.OrderType = orderType
 
 	// 製番 (親番のみ読み取り)
 	pidStr := getCellValue(f, headerSheetName, projectIDCell)

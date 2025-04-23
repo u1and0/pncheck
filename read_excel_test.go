@@ -64,8 +64,6 @@ func setValidLayout(f *excelize.File) {
 	f.SetCellValue(headerSheetName, requestDateCell, "2023/10/27") // D4: 要求年月日
 	f.SetCellValue(headerSheetName, projectNameCell, "テストプロジェクト")  // D5: 製番名称
 	f.SetCellValue(headerSheetName, noteCell, "備考欄テスト")            // D6: 備考
-	f.SetCellValue(headerSheetName, userSectionCell, "開発部")        // P5: 要求元 (※要確認セル)
-	f.SetCellValue(headerSheetName, orderTypeCell, "購入")           // B2: 発注区分 (※要確認セル)
 
 	// --- Orders Header (入力Ⅰ - 見出し行、読み込み対象外だが参考として) ---
 	f.SetCellValue(orderSheetName, colLv+"1", "Lv")
@@ -120,8 +118,8 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 			RequestDate: "2023/10/27", // D4
 			Deadline:    "2023/11/30", // D2
 			FileName:    "success_read.xlsx",
-			UserSection: "開発部",    // ※要確認セル P5
-			Note:        "備考欄テスト", // D6
+			// UserSection: "開発部",    // ※要確認セル P5
+			Note: "備考欄テスト", // D6
 		},
 		Orders: Orders{
 			{ // Row 2
