@@ -26,7 +26,7 @@ func processExcelFile(filePath string) FileProcessResult {
 		logError(result.ProcessError, filePath) // エラーログ出力
 		return result                           // エラー発生時はここで処理終了
 	}
-	log.Printf("Sheet data: %#v\n", sheetData)
+	log.Printf("[DEBUG]edSheet data: %#v\n", sheetData)
 
 	// 2. 読み込んだデータをAPI仕様のJSONに変換する
 	jsonData, err := convertToJSON(sheetData)
@@ -36,7 +36,7 @@ func processExcelFile(filePath string) FileProcessResult {
 		logError(result.ProcessError, filePath)
 		return result
 	}
-	log.Printf("Parsed JSON: %#v\n", string(jsonData))
+	log.Printf("[DEBUG] Parsed JSON: %#v\n", string(jsonData))
 
 	// 3. APIにJSONデータをPOSTする (サーバーアドレスが必要)
 	if pnsearchServerAddress == "" {

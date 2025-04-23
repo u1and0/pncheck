@@ -25,7 +25,8 @@ func postToConfirmAPI(jsonData []byte, serverAddress string) ([]byte, error) {
 	if serverAddress == "" {
 		return nil, errors.New("APIサーバーアドレスが空です")
 	}
-	apiURL := serverAddress + apiEndpointPath // 例: "http://localhost:8080/confirm"
+	// 例: "http://localhost:8080/api/v1/requests/confirm"
+	apiURL := serverAddress + apiEndpointPath
 
 	// POSTリクエストを作成
 	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))

@@ -8,7 +8,7 @@ import (
 )
 
 // --- コンパイルを通すための仮定義 ---
-type OrderType string // 仮定義
+type OrderType string
 
 const (
 	購入 OrderType = "購入"
@@ -16,10 +16,6 @@ const (
 	出庫 OrderType = "出庫"
 	不明 OrderType = "不明" // 不正な区分の場合
 )
-
-var db struct { // 仮定義（パッケージ名を模倣）
-	ProjectID int // 仮定義
-}
 
 // --- ユーザー提供の型定義 ---
 type (
@@ -31,7 +27,7 @@ type (
 	// Header : リクエストヘッダー
 	Header struct {
 		OrderType   OrderType `json:"発注区分"`
-		ProjectID   int       `json:"製番"` // db.ProjectID を int に変更 (仮)
+		ProjectID   string    `json:"製番"`
 		ProjectName string    `json:"製番名称"`
 
 		RequestDate string `json:"要求年月日"`

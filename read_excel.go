@@ -17,7 +17,7 @@ const (
 
 	// --- Header セル位置 (入力Ⅱ) ---
 	projectIDCell   = "D1" // 製番 (親番)
-	projectEdaCell  = "F1" // 製番 (枝番) - 今回は読み込まない
+	projectEdaCell  = "F1" // 製番 (枝番) - 親番 + 枝番 => 製番　とする
 	deadlineHCell   = "D2" // 製番納期
 	requestDateCell = "D4" // 要求年月日
 	projectNameCell = "D5" // 製番名称
@@ -77,11 +77,9 @@ func readExcelToSheet(filePath string) (Sheet, error) {
 	sheet.Header.OrderType = orderType
 
 	// 製番 (親番のみ読み取り)
-	pidStr := getCellValue(f, headerSheetName, projectIDCell)
-	sheet.Header.ProjectID, err = strconv.Atoi(strings.TrimSpace(pidStr))
-	if err != nil && pidStr != "" {
-		return sheet, fmt.Errorf("ヘッダー(%s): 製番(%s)が数値ではありません: %w", headerSheetName, projectIDCell, err)
-	}
+	parentID := getCellValue(f, headerSheetName, projectIDCell)
+	edaID := getCellValue(f, headerSheetName, projectEdaCell)
+	sheet.Header.ProjectID = parentID + edaID
 	// 製番枝番は読み込まない (必要なら sheet.Header にフィールド追加し、projectEdaCell から読み込む)
 	// sheet.Header.ProjectEda = getCellValue(f, headerSheetName, projectEdaCell)
 
