@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log" // logErrorで使用想定
@@ -15,61 +16,52 @@ var pnsearchServerAddress string // 例: "http://localhost:8080" (ビルド時�
 
 // processExcelFile は1つのExcelファイルを処理し、その結果を FileProcessResult として返します。
 // 内部でファイルの読み込み、JSON変換、API呼び出し、レスポンス処理を行います。
-func processExcelFile(filePath string) FileProcessResult {
-	result := FileProcessResult{FilePath: filePath}
-
-	// 1. Excelファイルを読み込む
+func processExcelFile(filePath string) ([]byte, error) {
+	// 1. Excel読み込み
 	sheetData, err := readExcelToSheet(filePath)
 	if err != nil {
-		result.IsSuccess = false
-		result.ProcessError = fmt.Errorf("Excel読み込みエラー: %w", err)
-		logError(result.ProcessError, filePath) // エラーログ出力
-		return result                           // エラー発生時はここで処理終了
+		return nil, fmt.Errorf("Excel読み込みエラー: %w", err)
 	}
-	log.Printf("[DEBUG]edSheet data: %#v\n", sheetData)
 
-	// 2. 読み込んだデータをAPI仕様のJSONに変換する
+	// 2. JSON変換
 	jsonData, err := convertToJSON(sheetData)
 	if err != nil {
-		result.IsSuccess = false
-		result.ProcessError = fmt.Errorf("JSON変換エラー: %w", err)
-		logError(result.ProcessError, filePath)
-		return result
+		return nil, fmt.Errorf("JSON変換エラー: %w", err)
 	}
-	log.Printf("[DEBUG] Parsed JSON: %#v\n", string(jsonData))
 
-	// 3. APIにJSONデータをPOSTする (サーバーアドレスが必要)
+	// 3. API呼び出し
 	if pnsearchServerAddress == "" {
-		result.IsSuccess = false
-		err = errors.New("APIサーバーアドレスが設定されていません (ビルド時に -ldflags で指定)")
-		result.ProcessError = err
-		logError(result.ProcessError, filePath)
-		return result
-	}
-	responseBody, err := postToConfirmAPI(jsonData, pnsearchServerAddress)
-	if err != nil {
-		result.IsSuccess = false
-		result.ProcessError = fmt.Errorf("API通信エラー: %w", err)
-		logError(result.ProcessError, filePath)
-		return result
+		return nil, errors.New("APIサーバーアドレスが設定されていません")
 	}
 
-	// 4. APIレスポンスを解析・処理する
+	responseBody, statusCode, err := postToConfirmAPI(jsonData, pnsearchServerAddress)
+	if err != nil {
+		return nil, fmt.Errorf("API通信エラー: %w", err)
+	}
+
+	// 4. APIレスポンス解析とエラー出力 (ボディがあれば実行)
+	if responseBody == nil || len(responseBody) < 1 {
+		return nil, fmt.Errorf("APIレスポンス解析エラー (ステータス: %d): %w", statusCode)
+	}
+
 	apiResponse, err := handleAPIResponse(responseBody)
 	if err != nil {
-		result.IsSuccess = false
-		result.ProcessError = fmt.Errorf("APIレスポンス解析エラー: %w", err)
-		logError(result.ProcessError, filePath)
-		return result
+		return nil, err
 	}
 
-	// 5. APIレスポンスから得られた結果を結果構造体に格納
-	result.IsSuccess = true                             // ここまで来たらプロセス自体は成功
-	result.ValidationError = len(apiResponse.Error) > 0 // APIエラーが1つ以上あれば検証エラー
-	result.ApiErrors = apiResponse.Error
-
-	// 6. 最終的な結果構造体を返す
-	return result
+	// JSONデコード成功
+	// レスポンスのSheetとSHA256は捨てる
+	baseName := filepath.Base(filePath)
+	outputData := ErrorOutput{Filename: baseName, Msg: apiResponse.Message, Errors: apiResponse.Error}
+	jsonBytes, err := json.MarshalIndent(outputData, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf(
+			"ERROR processing %s: エラー情報のJSONマーシャリングに失敗: %v",
+			filePath,
+			err,
+		)
+	}
+	return jsonBytes, nil
 }
 
 // logError関数: 実行中のエラーを標準エラー出力に記録する（ヘルパー関数）

@@ -18,52 +18,50 @@ func convertToJSON(sheet Sheet) ([]byte, error) {
 	return jsonData, nil
 }
 
-// postToConfirmAPI は指定されたJSONデータをAPIサーバーにPOSTし、レスポンスボディを返します。
-// serverAddress は "http://host:port" の形式です。
-func postToConfirmAPI(jsonData []byte, serverAddress string) ([]byte, error) {
-	// APIの完全なURLを生成
+// postToConfirmAPI は指定されたJSONデータをAPIサーバーにPOSTし、
+// レスポンスボディ、HTTPステータスコード、エラーを返します。
+// ステータスコードが2xx以外でも、ボディがあれば読み込んで返します。
+func postToConfirmAPI(jsonData []byte, serverAddress string) (body []byte, statusCode int, err error) {
+	statusCode = -1 // 不明なステータスを表す初期値
+
 	if serverAddress == "" {
-		return nil, errors.New("APIサーバーアドレスが空です")
+		return nil, statusCode, errors.New("APIサーバーアドレスが空です")
 	}
-	// 例: "http://localhost:8080/api/v1/requests/confirm"
 	apiURL := serverAddress + apiEndpointPath
 
-	// POSTリクエストを作成
 	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, fmt.Errorf("HTTPリクエストの作成に失敗しました: %w", err)
+		return nil, statusCode, fmt.Errorf("HTTPリクエストの作成に失敗しました: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	// 必要であれば他のヘッダー (認証トークンなど) も設定
 
-	// HTTPクライアントを作成 (タイムアウト設定)
 	client := &http.Client{Timeout: defaultTimeout}
-
-	// リクエスト実行
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("APIへのリクエスト送信に失敗しました (%s): %w", apiURL, err)
+		// 接続エラーなど、レスポンス自体が得られなかった場合
+		return nil, statusCode, fmt.Errorf("APIへのリクエスト送信に失敗しました (%s): %w", apiURL, err)
 	}
 	defer resp.Body.Close()
 
-	// ステータスコードをチェック (100番台または400番台以降以外はエラー)
-	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
-		// エラーレスポンスボディも読み取ってみる (エラー詳細が含まれる場合がある)
-		bodyBytes, readErr := io.ReadAll(resp.Body)
-		errorMsg := fmt.Sprintf("APIがエラーを返しました (ステータス: %d)", resp.StatusCode)
-		if readErr == nil && len(bodyBytes) > 0 {
-			errorMsg += fmt.Sprintf(" - レスポンス: %s", string(bodyBytes))
-		}
-		return nil, errors.New(errorMsg)
+	// レスポンスが得られた場合はステータスコードを記録
+	statusCode = resp.StatusCode
+
+	// ボディを読み込む (ステータスコードに関わらず試みる)
+	body, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		// ボディ読み込み失敗は致命的エラー
+		return nil, statusCode, fmt.Errorf("APIレスポンスボディの読み込みに失敗しました (ステータス: %d): %w", statusCode, readErr)
 	}
 
-	// レスポンスボディを読み込む
-	responseBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("APIレスポンスボディの読み込みに失敗しました: %w", err)
+	// ステータスコードが2xx以外の場合、エラーオブジェクトを生成 (ボディは正常に読み込めたので body は返す)
+	if statusCode < 200 || statusCode >= 300 {
+		// エラーメッセージにはステータスコードを含める
+		err = fmt.Errorf("APIがエラーステータスを返しました (ステータス: %d)", statusCode)
+		return body, statusCode, err // ボディ、ステータスコード、エラーを返す
 	}
 
-	return responseBody, nil
+	// 2xx の場合は、ボディ、ステータスコード、nilエラーを返す
+	return body, statusCode, nil
 }
 
 // handleAPIResponse は APIレスポンスボディ (JSON) を PNResponse 構造体にデコードします。

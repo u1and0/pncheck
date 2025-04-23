@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -85,20 +85,18 @@ type (
 		ProcessError    error         // プロセス自体のエラー (読み込み、通信、JSON変換など)
 	}
 
-	AggregatedResult struct {
-		TotalFiles        int                 // 処理した総ファイル数
-		SuccessFiles      int                 // プロセス成功ファイル数
-		ValidFiles        int                 // プロセス成功 かつ 検証OKファイル数
-		InvalidFiles      int                 // プロセス成功 かつ 検証NGファイル数
-		ProcessErrorFiles int                 // プロセス失敗ファイル数
-		ErrorDetails      []FileProcessResult // エラーがあったファイルの詳細リスト (プロセスエラー or 検証エラー)
+	// サーバーからのエラー出力のうち、このコマンドで使用するもの
+	ErrorOutput struct {
+		Filename string        `json:"filename"`
+		Msg      string        `json:"msg"`
+		Errors   []ErrorRecord `json:"errors,omitempty"`
 	}
 )
 
 const (
-	defaultErrorFileName = "error_report.log"         // エラーレポートのデフォルトファイル名
-	apiEndpointPath      = "/api/v1/requests/confirm" // APIのエンドポイントパス (固定値とする)
-	successDirName       = "success"                  // 成功ファイルを移動するディレクトリ名
+	errorReportFileName = "error_report_log.json"    // エラーレポートのデフォルトファイル名
+	apiEndpointPath     = "/api/v1/requests/confirm" // APIのエンドポイントパス (固定値とする)
+	successDirName      = "success"                  // 成功ファイルを移動するディレクトリ名
 )
 
 var defaultTimeout = 30 * time.Second // API通信のデフォルトタイムアウト
@@ -118,85 +116,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 2. 処理結果を格納するスライスを初期化
-	results := make([]FileProcessResult, 0, len(filePaths))
+	// 2. 変数初期化
+	var results []string
 
-	// 3. 各ファイルを処理
-	fmt.Printf("処理を開始します... (%d ファイル)\n", len(filePaths))
-	successCount := 0
-	errorFound := false // 全体でエラーがあったかを示すフラグ
-
-	// 成功ファイルを移動するディレクトリを作成 (存在してもエラーにならない)
+	// success ディレクトリ作成 (変更なし)
 	err = os.MkdirAll(successDirName, 0755)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "警告: 成功ファイル移動先ディレクトリ '%s' の作成に失敗しました: %v\n", successDirName, err)
-		// エラーでも処理は続行する（ファイル移動はスキップされる）
+		fmt.Fprintf(os.Stderr, "警告: success ディレクトリ作成失敗: %v\n", err)
 	}
 
-	for i, filePath := range filePaths {
-		fmt.Printf("[%d/%d] 処理中: %s ... ", i+1, len(filePaths), filepath.Base(filePath))
-
-		// 3a. 1つのファイルを処理
-		result := processExcelFile(filePath)
-		results = append(results, result)
-
-		// 3b. 結果表示と成功ファイル移動
-		if result.IsSuccess {
-			if result.ValidationError {
-				fmt.Println("NG (検証エラーあり)")
-				errorFound = true
-			} else {
-				fmt.Println("OK")
-				successCount++
-				// ファイル移動処理
-				if err == nil { // successDirName の作成に成功していれば
-					err := moveFileToSuccess(filePath, successDirName)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "  警告: ファイル '%s' の移動に失敗しました: %v\n", filepath.Base(filePath), err)
-					} else {
-						fmt.Printf("  -> '%s' へ移動しました。\n", successDirName)
-					}
-				}
-			}
-		} else {
-			fmt.Println("エラー (処理失敗)")
-			errorFound = true
-		}
-	}
-
-	fmt.Println("----------------------------------------")
-	fmt.Println("処理結果:")
-
-	// 4. 全体の結果を集約
-	aggregated := aggregateResults(results)
-
-	// 5. エラーレポートをファイルに出力
-	if aggregated.ProcessErrorFiles > 0 || aggregated.InvalidFiles > 0 {
-		err = writeErrorFile(aggregated, defaultErrorFileName)
+	// 3. 各ファイルを処理
+	// エラーがあったらerror_report.jsonへ追記する
+	// エラーがなければsuccessディレクトリへ移動
+	for _, filePath := range filePaths {
+		b, err := processExcelFile(filePath)
+		fmt.Println(string(b))
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "エラーレポートファイル '%s' の書き込みに失敗しました: %v\n", defaultErrorFileName, err)
-			errorFound = true // レポート書き込み失敗もエラーとみなす
+			err = writeErrorFile(b, errorReportFileName)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+			}
+			continue
 		} else {
-			fmt.Printf("エラーの詳細を '%s' に出力しました。\n", defaultErrorFileName)
+			err = moveFileToSuccess(filePath, successDirName)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "%v\n", err)
+			}
 		}
-	} else {
-		fmt.Println("エラーはありませんでした。")
-	}
-
-	// 6. サマリー表示
-	fmt.Printf("  総ファイル数: %d\n", aggregated.TotalFiles)
-	fmt.Printf("  正常処理ファイル数: %d\n", aggregated.SuccessFiles)
-	fmt.Printf("    - 検証OK (移動済み): %d\n", successCount) // 移動成功数で表示
-	fmt.Printf("    - 検証NG: %d\n", aggregated.InvalidFiles)
-	fmt.Printf("  処理エラーファイル数: %d\n", aggregated.ProcessErrorFiles)
-	fmt.Println("----------------------------------------")
-
-	// 7. 終了コード設定
-	if errorFound {
-		fmt.Println("エラーが発生したため、終了コード 1 で終了します。")
-		os.Exit(1)
-	} else {
-		fmt.Println("正常に終了しました。")
-		os.Exit(0)
+		log.Printf("response JSON: %v\n", results)
 	}
 }
