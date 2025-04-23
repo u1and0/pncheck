@@ -105,70 +105,67 @@ func setValidLayout(f *excelize.File) {
 
 // --- テスト関数 ---
 
+// TestReadExcelToSheet_Success
+// expectedSheet.Header.ProjectID の期待値を修正
 func TestReadExcelToSheet_Success(t *testing.T) {
-	testDir := "testdata_read" // testdata ディレクトリ名を変更
-	testFile := createTestExcelFile(t, testDir, "success_read-K.xlsx", setValidLayout)
+	testDir := "testdata_read"
+	testFile := createTestExcelFile(t, testDir, "success_read.xlsx", setValidLayout)
 
 	expectedSheet := Sheet{
 		Config: Config{Validatable: true, Sortable: false},
 		Header: Header{
-			OrderType:   "購入",         // ※要確認セル B2
-			ProjectID:   12345,        // D1
-			ProjectName: "テストプロジェクト",  // D5
-			RequestDate: "2023/10/27", // D4
-			Deadline:    "2023/11/30", // D2
-			FileName:    "success_read-K.xlsx",
-			// UserSection: "開発部",    // ※要確認セル P5
+			OrderType:   購入,                  // ファイル名から取得される (※要確認セル B2 -> parseFileNameInfo に変更)
+			ProjectID:   "1234501",           // ★ 修正: 親番("12345") + 枝番("01") で結合された文字列
+			ProjectName: "テストプロジェクト",         // D5
+			RequestDate: "2023/10/27",        // D4
+			Deadline:    "2023/11/30",        // D2
+			FileName:    "success_read.xlsx", // ファイル名
+			// UserSection: "開発部",       // UserSection は読み込まなくなったので削除
 			Note: "備考欄テスト", // D6
 		},
 		Orders: Orders{
+			// ... (Orders の期待値は変更なし) ...
 			{ // Row 2
-				Lv:        1,
-				Pid:       "PN-001",
-				Name:      "部品A",
-				Type:      "TypeX",
-				Quantity:  10.5,
-				Unit:      "個",
-				Deadline:  "2023/11/15",
-				Kenku:     "受入",
-				Device:    "装置1",
-				Serial:    "S001",
-				Maker:     "MakerX",
-				Vendor:    "VendorY",
-				UnitPrice: 100.50,
+				Lv: 1, Pid: "PN-001", Name: "部品A", Type: "TypeX",
+				Quantity: 10.5, Unit: "個", Deadline: "2023/11/15", Kenku: "受入",
+				Device: "装置1", Serial: "S001", Maker: "MakerX", Vendor: "VendorY", UnitPrice: 100.50,
 			},
 			{ // Row 3
-				Lv:        2,
-				Pid:       "PN-002",
-				Name:      "部品B",
-				Type:      "", // 空
-				Quantity:  5,
-				Unit:      "Set",
-				Deadline:  "", // 空
-				Kenku:     "", // 空
-				Device:    "", // 空
-				Serial:    "", // 空
-				Maker:     "", // 空
-				Vendor:    "", // 空
-				UnitPrice: 2500,
+				Lv: 2, Pid: "PN-002", Name: "部品B", Type: "",
+				Quantity: 5, Unit: "Set", Deadline: "", Kenku: "",
+				Device: "", Serial: "", Maker: "", Vendor: "", UnitPrice: 2500,
 			},
-			{ // Row 5 (After empty row)
-				Lv:        0, // 空
-				Pid:       "PN-003",
-				Name:      "部品C",
-				Type:      "", // 空
-				Quantity:  1,
-				Unit:      "", // 空
-				Deadline:  "", // 空
-				Kenku:     "", // 空
-				Device:    "", // 空
-				Serial:    "", // 空
-				Maker:     "", // 空
-				Vendor:    "", // 空
-				UnitPrice: 0,  // 空
+			{ // Row 5
+				Lv: 0, Pid: "PN-003", Name: "部品C", Type: "",
+				Quantity: 1, Unit: "", Deadline: "", Kenku: "",
+				Device: "", Serial: "", Maker: "", Vendor: "", UnitPrice: 0,
 			},
 		},
 	}
+
+	// 実行前に、テスト用のファイル名が parseFileNameInfo でエラーにならないように調整
+	// (parseFileNameInfo はファイル名自体を引数にとるため)
+	// expectedFileName := fmt.Sprintf("20231027-%s-%s-%s.xlsx",
+	//     expectedSheet.Header.ProjectID[:12], // 製番部分 (12桁想定)
+	//     "DUMMY", // 号機はテストデータ設定にないので仮
+	//     "K") // OrderTypeが購入になるように
+	// testFile = createTestExcelFile(t, testDir, expectedFileName, setValidLayout) // 再生成 or リネーム
+	// ↑ parseFileNameInfo が filePath を受け取るので、テストファイル自体の名前を期待値に合わせるか、
+	//   parseFileNameInfo の引数を固定値にするなどの工夫が必要
+
+	// ---- parseFileNameInfo を直接呼び出すのではなく、readExcelToSheet内で呼ばれることを考慮 ----
+	// readExcelToSheet は filePath を引数にとり、その中で parseFileNameInfo(filePath) を呼ぶ
+	// そのため、テスト用のExcelファイル名自体が parseFileNameInfo のフォーマットに合致している必要がある
+
+	// テストファイル名を parseFileNameInfo が成功する形式にする
+	// 例: "YYYYMMDD-ProjectID(親)-Serial-OrderType.xlsx"
+	// このテストでは OrderType 購入 (K) を期待
+	correctFormatFileName := fmt.Sprintf("20231027-%s-TESTSERIAL-K.xlsx", expectedSheet.Header.ProjectID)
+	// createTestExcelFile でファイル名を設定し直すか、テスト前にリネームする
+	// ここでは createTestExcelFile に渡すファイル名を変更する
+	testFile = createTestExcelFile(t, testDir, correctFormatFileName, setValidLayout)
+	// 期待値の FileName も合わせる
+	expectedSheet.Header.FileName = correctFormatFileName
 
 	actualSheet, err := readExcelToSheet(testFile)
 	if err != nil {
@@ -177,7 +174,7 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 
 	// DeepEqual で比較
 	if !reflect.DeepEqual(expectedSheet, actualSheet) {
-		// どこが違うか分かりやすく表示
+		// ... (詳細比較のロジックは変更なし) ...
 		t.Errorf("Sheetが期待値と異なります。")
 		if !reflect.DeepEqual(expectedSheet.Config, actualSheet.Config) {
 			t.Errorf("  Config:\n    期待値: %+v\n    実際値: %+v", expectedSheet.Config, actualSheet.Config)
@@ -185,6 +182,7 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 		if !reflect.DeepEqual(expectedSheet.Header, actualSheet.Header) {
 			t.Errorf("  Header:\n    期待値: %+v\n    実際値: %+v", expectedSheet.Header, actualSheet.Header)
 		}
+		// ... (Ordersの比較など) ...
 		if len(expectedSheet.Orders) != len(actualSheet.Orders) {
 			t.Errorf("  Ordersの件数が異なります: 期待値=%d, 実際値=%d", len(expectedSheet.Orders), len(actualSheet.Orders))
 		} else {
@@ -205,24 +203,6 @@ func TestReadExcelToSheet_FileNotFound(t *testing.T) {
 	t.Logf("期待通りファイルオープンエラーを検出: %v", err)
 }
 
-func TestReadExcelToSheet_InvalidNumberFormat_Header(t *testing.T) {
-	testDir := "testdata_read"
-	testFile := createTestExcelFile(t, testDir, "invalid_header_read-K.xlsx", func(f *excelize.File) {
-		setValidLayout(f)
-		f.SetCellValue(headerSheetName, projectIDCell, "ABCDE") // D1に文字列
-	})
-
-	_, err := readExcelToSheet(testFile)
-	if err == nil {
-		t.Fatal("ヘッダーの数値変換エラーが検出されませんでした。")
-	}
-	expectedErrMsg := fmt.Sprintf("ヘッダー(%s): 製番(%s)が数値ではありません", headerSheetName, projectIDCell)
-	if !strings.Contains(err.Error(), expectedErrMsg) {
-		t.Errorf("期待されるエラーメッセージが含まれていません。\n期待含む: %s\n実際: %v", expectedErrMsg, err)
-	}
-	t.Logf("期待通りヘッダー数値エラーを検出: %v", err)
-}
-
 func TestReadExcelToSheet_InvalidNumberFormat_Orders(t *testing.T) {
 	testDir := "testdata_read"
 	testFile := createTestExcelFile(t, testDir, "invalid_orders_read-K.xlsx", func(f *excelize.File) {
@@ -241,25 +221,46 @@ func TestReadExcelToSheet_InvalidNumberFormat_Orders(t *testing.T) {
 	t.Logf("期待通り明細数値エラーを検出: %v", err)
 }
 
+// expectedSheet.Header.ProjectID の期待値を修正
 func TestReadExcelToSheet_EmptySheet(t *testing.T) {
 	testDir := "testdata_read"
-	testFile := createTestExcelFile(t, testDir, "empty_sheet_read-K.xlsx", func(f *excelize.File) {
+	// ファイル名を parseFileNameInfo が成功する形式にする
+	correctFormatFileName := "20240101-9999900-EMPTY-K.xlsx"
+
+	testFile := createTestExcelFile(t, testDir, correctFormatFileName, func(f *excelize.File) {
 		// ヘッダーだけ設定し、明細は空にする
-		f.SetCellValue(headerSheetName, projectIDCell, "99999")     // D1
-		f.SetCellValue(headerSheetName, projectNameCell, "空シートテスト") // D5
+		f.SetCellValue(headerSheetName, projectIDCell, "99999") // 親番
+		f.SetCellValue(headerSheetName, projectEdaCell, "00")   // 枝番
+		f.SetCellValue(headerSheetName, projectNameCell, "空シートテスト")
 		// ... 他のヘッダー項目 ...
 		// orderSheetName ("入力Ⅰ") には何も書き込まない
 	})
 
+	expectedHeader := Header{
+		OrderType:   購入,        // ファイル名から
+		ProjectID:   "9999900", // 親番 + 枝番
+		ProjectName: "空シートテスト",
+		// RequestDate など、設定していないフィールドはゼロ値のまま
+		FileName: correctFormatFileName,
+	}
+
 	sheet, err := readExcelToSheet(testFile)
 	if err != nil {
+		// parseFileNameInfo でエラーになる可能性があるためチェック
 		t.Fatalf("空の明細シートで予期せぬエラー: %v", err)
 	}
 	if len(sheet.Orders) != 0 {
 		t.Errorf("明細が空のはずが、%d件読み込まれました。", len(sheet.Orders))
 	}
-	if sheet.Header.ProjectID != 99999 {
-		t.Errorf("空の明細シートでもヘッダーは読み込まれるはずです。ProjectID=%d", sheet.Header.ProjectID)
+	// ヘッダーを比較 (ProjectID と FileName、OrderType のみチェック)
+	if sheet.Header.ProjectID != expectedHeader.ProjectID {
+		t.Errorf("空の明細シートでもヘッダーは読み込まれるはずです。ProjectID: 期待=%q, 実際=%q", expectedHeader.ProjectID, sheet.Header.ProjectID)
+	}
+	if sheet.Header.FileName != expectedHeader.FileName {
+		t.Errorf("FileNameが期待値と異なります。FileName: 期待=%q, 実際=%q", expectedHeader.FileName, sheet.Header.FileName)
+	}
+	if sheet.Header.OrderType != expectedHeader.OrderType {
+		t.Errorf("OrderTypeが期待値と異なります。OrderType: 期待=%q, 実際=%q", expectedHeader.OrderType, sheet.Header.OrderType)
 	}
 	t.Log("空の明細シートを正常に処理しました。")
 }

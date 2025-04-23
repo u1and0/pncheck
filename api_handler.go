@@ -46,8 +46,8 @@ func postToConfirmAPI(jsonData []byte, serverAddress string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	// ステータスコードをチェック (2xx以外はエラー)
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+	// ステータスコードをチェック (100番台または400番台以降以外はエラー)
+	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
 		// エラーレスポンスボディも読み取ってみる (エラー詳細が含まれる場合がある)
 		bodyBytes, readErr := io.ReadAll(resp.Body)
 		errorMsg := fmt.Sprintf("APIがエラーを返しました (ステータス: %d)", resp.StatusCode)

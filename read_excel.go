@@ -69,7 +69,7 @@ func readExcelToSheet(filePath string) (Sheet, error) {
 	// --- ヘッダー情報を読み込む (主に headerSheetName = "入力Ⅱ" から) ---
 	sheet.Header.FileName = filepath.Base(filePath)
 
-	// 発注区分 (※要確認セル)
+	// 発注区分
 	orderType, err := parseFileNameInfo(filePath)
 	if err != nil {
 		return sheet, fmt.Errorf("ファイル名(%s)の解釈に失敗しました: %w", filePath, err)
