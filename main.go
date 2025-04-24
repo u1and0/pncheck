@@ -17,7 +17,6 @@ const (
 	不明 OrderType = "不明" // 不正な区分の場合
 )
 
-// --- ユーザー提供の型定義 ---
 type (
 	// Config : 設定スイッチ
 	Config struct {
@@ -84,13 +83,6 @@ type (
 		ApiErrors       []ErrorRecord // APIから返されたエラー詳細 (PNResponse.Error)
 		ProcessError    error         // プロセス自体のエラー (読み込み、通信、JSON変換など)
 	}
-
-	// サーバーからのエラー出力のうち、このコマンドで使用するもの
-	ErrorOutput struct {
-		Filename string        `json:"filename"`
-		Msg      string        `json:"msg"`
-		Errors   []ErrorRecord `json:"errors,omitempty"`
-	}
 )
 
 const (
@@ -99,7 +91,10 @@ const (
 	successDirName      = "success"                  // 成功ファイルを移動するディレクトリ名
 )
 
-var defaultTimeout = 30 * time.Second // API通信のデフォルトタイムアウト
+var (
+	pnsearchServerAddress string             // 例: "http://localhost:8080" (ビルド時に注入)
+	defaultTimeout        = 30 * time.Second // API通信のデフォルトタイムアウト
+)
 
 func main() {
 	// 1. コマンドライン引数を解析
@@ -116,33 +111,29 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 2. 変数初期化
-	var results []string
-
-	// success ディレクトリ作成 (変更なし)
+	// success ディレクトリ作成
 	err = os.MkdirAll(successDirName, 0755)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "警告: success ディレクトリ作成失敗: %v\n", err)
 	}
 
-	// 3. 各ファイルを処理
-	// エラーがあったらerror_report.jsonへ追記する
-	// エラーがなければsuccessディレクトリへ移動
+	// 各ファイルを処理
 	for _, filePath := range filePaths {
-		b, err := processExcelFile(filePath)
-		fmt.Println(string(b))
+		eo, err := processExcelFile(filePath)
+		log.Printf("process output: %#v\n", eo)
 		if err != nil {
-			err = writeErrorFile(b, errorReportFileName)
+			fmt.Printf("Error: %s\n", err)
+			// エラーがあればerror_reportに記録して次の処理へ
+			err = eo.writeErrorFile(errorReportFileName)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 			}
 			continue
-		} else {
-			err = moveFileToSuccess(filePath, successDirName)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "%v\n", err)
-			}
 		}
-		log.Printf("response JSON: %v\n", results)
+		// エラーがなければsuccessディレクトリに移動して次のファイル処理へ
+		err = moveFileToSuccess(filePath, successDirName)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+		}
 	}
 }

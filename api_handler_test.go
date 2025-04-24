@@ -137,7 +137,7 @@ func TestPostToConfirmAPI_Success(t *testing.T) {
 
 	// テスト対象関数を実行
 	jsonData, _ := convertToJSON(testValidSheet)
-	responseBody, err := postToConfirmAPI(jsonData, server.URL) // モックサーバーのアドレスを使用
+	responseBody, _, err := postToConfirmAPI(jsonData, server.URL) // モックサーバーのアドレスを使用
 
 	// 結果を検証
 	if err != nil {
@@ -161,13 +161,13 @@ func TestPostToConfirmAPI_ApiError(t *testing.T) {
 
 	// テスト対象関数を実行
 	jsonData, _ := convertToJSON(testValidSheet)
-	_, err := postToConfirmAPI(jsonData, server.URL)
+	_, code, err := postToConfirmAPI(jsonData, server.URL)
 
 	// 結果を検証 (エラーが発生し、メッセージにステータスコードとレスポンスが含まれること)
 	if err == nil {
 		t.Fatal("APIエラー時にエラーが返されませんでした")
 	}
-	if !strings.Contains(err.Error(), "ステータス: 400") {
+	if code < 400 {
 		t.Errorf("エラーメッセージにステータスコード(400)が含まれていません: %v", err)
 	}
 	if !strings.Contains(err.Error(), errorMsg) {
@@ -193,7 +193,7 @@ func TestPostToConfirmAPI_Timeout(t *testing.T) {
 
 	// テスト対象関数を実行
 	jsonData, _ := convertToJSON(testValidSheet)
-	_, err := postToConfirmAPI(jsonData, server.URL)
+	_, _, err := postToConfirmAPI(jsonData, server.URL)
 
 	// 結果を検証 (タイムアウトエラーが発生すること)
 	if err == nil {
@@ -208,7 +208,7 @@ func TestPostToConfirmAPI_Timeout(t *testing.T) {
 
 func TestPostToConfirmAPI_EmptyServerAddress(t *testing.T) {
 	jsonData, _ := convertToJSON(testValidSheet)
-	_, err := postToConfirmAPI(jsonData, "") // 空のアドレス
+	_, _, err := postToConfirmAPI(jsonData, "") // 空のアドレス
 	if err == nil {
 		t.Fatal("サーバーアドレスが空の場合にエラーが返されませんでした")
 	}

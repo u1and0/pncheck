@@ -52,15 +52,6 @@ func postToConfirmAPI(jsonData []byte, serverAddress string) (body []byte, statu
 		// ボディ読み込み失敗は致命的エラー
 		return nil, statusCode, fmt.Errorf("APIレスポンスボディの読み込みに失敗しました (ステータス: %d): %w", statusCode, readErr)
 	}
-
-	// ステータスコードが2xx以外の場合、エラーオブジェクトを生成 (ボディは正常に読み込めたので body は返す)
-	if statusCode < 200 || statusCode >= 300 {
-		// エラーメッセージにはステータスコードを含める
-		err = fmt.Errorf("APIがエラーステータスを返しました (ステータス: %d)", statusCode)
-		return body, statusCode, err // ボディ、ステータスコード、エラーを返す
-	}
-
-	// 2xx の場合は、ボディ、ステータスコード、nilエラーを返す
 	return body, statusCode, nil
 }
 
