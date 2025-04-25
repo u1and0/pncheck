@@ -1,4 +1,4 @@
-package process
+package output
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	pnio "pncheck/lib/io"
+	"pncheck/lib/input"
 )
 
 type (
@@ -24,7 +24,7 @@ type (
 		Message string        `json:"msg"`              // ログの概要 (例: "チェック完了", "エラーあり")
 		Error   []ErrorRecord `json:"errors,omitempty"` // エラーがあればErrorRecordを追記
 		SHA256  string        `json:"sha256,omitempty"` // Sheet構造体から計算したsha256ハッシュ
-		Sheet   pnio.Sheet    `json:"sheet,omitempty"`  // 検証対象のSheet構造体 (オプション)
+		Sheet   input.Sheet   `json:"sheet,omitempty"`  // 検証対象のSheet構造体 (オプション)
 	}
 )
 
@@ -36,7 +36,7 @@ var defaultTimeout = 30 * time.Second // API通信のデフォルトタイムア
 // postToConfirmAPI は指定されたJSONデータをAPIサーバーにPOSTし、
 // レスポンスボディ、HTTPステータスコード、エラーを返します。
 // ステータスコードが2xx以外でも、ボディがあれば読み込んで返します。
-func PostToConfirmAPI(sheet pnio.Sheet, serverAddress string) (body []byte, statusCode int, err error) {
+func PostToConfirmAPI(sheet input.Sheet, serverAddress string) (body []byte, statusCode int, err error) {
 
 	if serverAddress == "" {
 		return nil, statusCode, errors.New("APIサーバーアドレスが空です")

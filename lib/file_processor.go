@@ -7,28 +7,27 @@ import (
 	"os"
 	"path/filepath"
 
-	"pncheck/lib/io"
-	"pncheck/lib/process"
-	"pncheck/lib/write"
+	"pncheck/lib/input"
+	"pncheck/lib/output"
 )
 
 var pnsearchServerAddress string // 例: "http://localhost:8080" (ビルド時に注入)
 
 // ProcessExcelFile は1つのExcelファイルを処理し、その結果を FileProcessResult として返します。
 // 内部でファイルの読み込み、JSON変換、API呼び出し、レスポンス処理を行います。
-func ProcessExcelFile(filePath string) (*write.ErrorOutput, error) {
+func ProcessExcelFile(filePath string) (*output.ErrorOutput, error) {
 	if pnsearchServerAddress == "" {
 		return nil, errors.New("APIサーバーアドレスが設定されていません")
 	}
 
 	// Excel読み込み
-	sheet, err := io.ReadExcelToSheet(filePath)
+	sheet, err := input.ReadExcelToSheet(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("Excel読み込みエラー: %w", err)
 	}
 
 	// API呼び出し
-	body, code, err := process.PostToConfirmAPI(sheet, pnsearchServerAddress)
+	body, code, err := output.PostToConfirmAPI(sheet, pnsearchServerAddress)
 	if err != nil {
 		return nil, fmt.Errorf("API通信エラー: %w", err)
 	}
@@ -38,7 +37,7 @@ func ProcessExcelFile(filePath string) (*write.ErrorOutput, error) {
 		return nil, fmt.Errorf("APIレスポンス解析エラー (ステータス: %d): %w", code, err)
 	}
 
-	apiResponse, err := process.HandleAPIResponse(body)
+	apiResponse, err := output.HandleAPIResponse(body)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +46,7 @@ func ProcessExcelFile(filePath string) (*write.ErrorOutput, error) {
 	// JSONデコード成功
 	// レスポンスのSheetとSHA256は捨てる
 	baseName := filepath.Base(filePath)
-	outputData := write.ErrorOutput{
+	outputData := output.ErrorOutput{
 		Filename: baseName,
 		Msg:      apiResponse.Message,
 		Errors:   apiResponse.Error,

@@ -1,4 +1,4 @@
-package io
+package input
 
 type OrderType string
 
@@ -9,11 +9,11 @@ const (
 	不明 OrderType = "不明" // 不正な区分の場合
 )
 
-var ValidOrderTypes  = map[string]io.OrderType{
-		"S": 出庫,
-		"K": 購入,
-		"G": 外注,
-	}
+var ValidOrderTypes = map[string]OrderType{
+	"S": 出庫,
+	"K": 購入,
+	"G": 外注,
+}
 
 type (
 	// Config : 設定スイッチ

@@ -1,18 +1,16 @@
-package write
+package output
 
 import (
 	"encoding/json"
 	"fmt"
 	"os"
-
-	"pncheck/lib/process"
 )
 
 // サーバーからのエラー出力のうち、このコマンドで使用するもの
 type ErrorOutput struct {
-	Filename string                `json:"filename"`
-	Msg      string                `json:"msg"`
-	Errors   []process.ErrorRecord `json:"errors,omitempty"`
+	Filename string        `json:"filename"`
+	Msg      string        `json:"msg"`
+	Errors   []ErrorRecord `json:"errors,omitempty"`
 }
 
 // writeErrorFile は集約されたエラー結果を指定されたファイルにJSON形式で出力します。
