@@ -1,4 +1,4 @@
-package main
+package io
 
 import (
 	"fmt"
@@ -44,9 +44,9 @@ const (
 	maxEmptyRowsCheck = 5    // 連続で何行空行なら明細終了とみなすか
 )
 
-// readExcelToSheet は指定されたExcelファイルを読み込み、Sheet構造体に変換します。
+// ReadExcelToSheet は指定されたExcelファイルを読み込み、Sheet構造体に変換します。
 // Excelのレイアウトは提供された書き込みコードに基づいて定数で定義されたものを仮定しています。
-func readExcelToSheet(filePath string) (Sheet, error) {
+func ReadExcelToSheet(filePath string) (Sheet, error) {
 	var sheet Sheet
 
 	// --- ファイルを開く ---

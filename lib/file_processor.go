@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"errors"
@@ -6,29 +6,29 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	"pncheck/lib/io"
+	"pncheck/lib/process"
+	"pncheck/lib/write"
 )
 
-// processExcelFile は1つのExcelファイルを処理し、その結果を FileProcessResult として返します。
+var pnsearchServerAddress string // 例: "http://localhost:8080" (ビルド時に注入)
+
+// ProcessExcelFile は1つのExcelファイルを処理し、その結果を FileProcessResult として返します。
 // 内部でファイルの読み込み、JSON変換、API呼び出し、レスポンス処理を行います。
-func processExcelFile(filePath string) (*ErrorOutput, error) {
+func ProcessExcelFile(filePath string) (*write.ErrorOutput, error) {
 	if pnsearchServerAddress == "" {
 		return nil, errors.New("APIサーバーアドレスが設定されていません")
 	}
 
 	// Excel読み込み
-	s, err := readExcelToSheet(filePath)
+	sheet, err := io.ReadExcelToSheet(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("Excel読み込みエラー: %w", err)
 	}
 
-	// JSON変換
-	jsonData, err := convertToJSON(s)
-	if err != nil {
-		return nil, fmt.Errorf("JSON変換エラー: %w", err)
-	}
-
 	// API呼び出し
-	body, code, err := postToConfirmAPI(jsonData, pnsearchServerAddress)
+	body, code, err := process.PostToConfirmAPI(sheet, pnsearchServerAddress)
 	if err != nil {
 		return nil, fmt.Errorf("API通信エラー: %w", err)
 	}
@@ -38,7 +38,7 @@ func processExcelFile(filePath string) (*ErrorOutput, error) {
 		return nil, fmt.Errorf("APIレスポンス解析エラー (ステータス: %d): %w", code, err)
 	}
 
-	apiResponse, err := handleAPIResponse(body)
+	apiResponse, err := process.HandleAPIResponse(body)
 	if err != nil {
 		return nil, err
 	}
@@ -47,12 +47,16 @@ func processExcelFile(filePath string) (*ErrorOutput, error) {
 	// JSONデコード成功
 	// レスポンスのSheetとSHA256は捨てる
 	baseName := filepath.Base(filePath)
-	outputData := ErrorOutput{Filename: baseName, Msg: apiResponse.Message, Errors: apiResponse.Error}
+	outputData := write.ErrorOutput{
+		Filename: baseName,
+		Msg:      apiResponse.Message,
+		Errors:   apiResponse.Error,
+	}
 	return &outputData, nil
 }
 
-// moveFileToSuccess は指定されたファイルを指定されたディレクトリに移動します。
-func moveFileToSuccess(filePath string, destDir string) error {
+// MoveFileToSuccess は指定されたファイルを指定されたディレクトリに移動します。
+func MoveFileToSuccess(filePath string, destDir string) error {
 	// 移動先ディレクトリが存在するか確認
 	destInfo, err := os.Stat(destDir)
 	if os.IsNotExist(err) {

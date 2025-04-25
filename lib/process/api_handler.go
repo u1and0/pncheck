@@ -1,4 +1,4 @@
-package main
+package process
 
 import (
 	"bytes"
@@ -7,27 +7,46 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
+
+	pnio "pncheck/lib/io"
 )
 
-// convertToJSON は Sheet 構造体を JSON バイトスライスに変換します。
-func convertToJSON(sheet Sheet) ([]byte, error) {
-	jsonData, err := json.Marshal(sheet)
-	if err != nil {
-		return nil, fmt.Errorf("Sheet構造体のJSON変換に失敗しました: %w", err)
+type (
+	ErrorRecord struct {
+		Message string `json:"msg"`               // 例: "品番が見つかりません"
+		Details string `json:"details,omitempty"` // 例: "PN-XXX"
+		Key     string `json:"key,omitempty"`     // 例: "品番" or "Pid"
+		Index   *int   `json:"index,omitempty"`   // エラーが発生した行番号 (0-based or 1-based? API仕様による)
 	}
-	return jsonData, nil
-}
+
+	PNResponse struct {
+		Message string        `json:"msg"`              // ログの概要 (例: "チェック完了", "エラーあり")
+		Error   []ErrorRecord `json:"errors,omitempty"` // エラーがあればErrorRecordを追記
+		SHA256  string        `json:"sha256,omitempty"` // Sheet構造体から計算したsha256ハッシュ
+		Sheet   pnio.Sheet    `json:"sheet,omitempty"`  // 検証対象のSheet構造体 (オプション)
+	}
+)
+
+// APIのエンドポイントパス (固定値とする)
+const apiEndpointPath = "/api/v1/requests/confirm"
+
+var defaultTimeout = 30 * time.Second // API通信のデフォルトタイムアウト
 
 // postToConfirmAPI は指定されたJSONデータをAPIサーバーにPOSTし、
 // レスポンスボディ、HTTPステータスコード、エラーを返します。
 // ステータスコードが2xx以外でも、ボディがあれば読み込んで返します。
-func postToConfirmAPI(jsonData []byte, serverAddress string) (body []byte, statusCode int, err error) {
-	statusCode = -1 // 不明なステータスを表す初期値
+func PostToConfirmAPI(sheet pnio.Sheet, serverAddress string) (body []byte, statusCode int, err error) {
 
 	if serverAddress == "" {
 		return nil, statusCode, errors.New("APIサーバーアドレスが空です")
 	}
 	apiURL := serverAddress + apiEndpointPath
+
+	jsonData, err := json.Marshal(sheet)
+	if err != nil {
+		return nil, statusCode, fmt.Errorf("Sheet構造体のJSON変換に失敗しました: %w", err)
+	}
 
 	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -55,8 +74,8 @@ func postToConfirmAPI(jsonData []byte, serverAddress string) (body []byte, statu
 	return body, statusCode, nil
 }
 
-// handleAPIResponse は APIレスポンスボディ (JSON) を PNResponse 構造体にデコードします。
-func handleAPIResponse(responseBody []byte) (PNResponse, error) {
+// HandleAPIResponse は APIレスポンスボディ (JSON) を PNResponse 構造体にデコードします。
+func HandleAPIResponse(responseBody []byte) (PNResponse, error) {
 	var pnResponse PNResponse
 	if err := json.Unmarshal(responseBody, &pnResponse); err != nil {
 		return PNResponse{}, fmt.Errorf("APIレスポンスJSONのデコードに失敗しました: %w", err)

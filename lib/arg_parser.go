@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"errors"
@@ -8,9 +8,9 @@ import (
 	"path/filepath" // ヘルプメッセージ用にインポート
 )
 
-// parseArguments はコマンドライン引数を解析し、処理対象のExcelファイルパスのリストを返します。
+// ParseArguments はコマンドライン引数を解析し、処理対象のExcelファイルパスのリストを返します。
 // 引数が指定されていない場合や、-h / --help が指定された場合はヘルプメッセージを表示して終了します。
-func parseArguments() (filePaths []string, err error) {
+func ParseArguments() (filePaths []string, err error) {
 	// ヘルプフラグの定義
 	var showHelp bool
 	flag.BoolVar(&showHelp, "h", false, "ヘルプメッセージを表示します")
