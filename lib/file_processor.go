@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -13,9 +14,35 @@ import (
 
 var pnsearchServerAddress string // 例: "http://localhost:8080" (ビルド時に注入)
 
+// サーバーからのエラー出力のうち、このコマンドで使用するもの
+type ErrorOutput struct {
+	Filename string               `json:"filename"`
+	Msg      string               `json:"msg"`
+	Errors   []output.ErrorRecord `json:"errors,omitempty"`
+}
+
+// WriteErrorFile は集約されたエラー結果を指定されたファイルにJSON形式で出力します。
+// エラーがない場合はファイルを作成しません。
+// 出力形式: エラーがあった FileProcessResult のスライスをインデント付きJSONで出力
+func (eo *ErrorOutput) WriteErrorFile(path string) error {
+	// ファイルを開く (なければ作成、あれば上書き)
+	file, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("エラーファイル '%s' の作成に失敗しました: %w", path, err)
+	}
+	defer file.Close()
+
+	b, err := json.MarshalIndent(&eo, "", "  ")
+	_, err = file.Write(b)
+	if err != nil {
+		return fmt.Errorf("エラーファイル '%s' へのJSONデータ書き込みに失敗しました: %w", path, err)
+	}
+	return nil
+}
+
 // ProcessExcelFile は1つのExcelファイルを処理し、その結果を FileProcessResult として返します。
 // 内部でファイルの読み込み、JSON変換、API呼び出し、レスポンス処理を行います。
-func ProcessExcelFile(filePath string) (*output.ErrorOutput, error) {
+func ProcessExcelFile(filePath string) (*ErrorOutput, error) {
 	if pnsearchServerAddress == "" {
 		return nil, errors.New("APIサーバーアドレスが設定されていません")
 	}
@@ -46,7 +73,7 @@ func ProcessExcelFile(filePath string) (*output.ErrorOutput, error) {
 	// JSONデコード成功
 	// レスポンスのSheetとSHA256は捨てる
 	baseName := filepath.Base(filePath)
-	outputData := output.ErrorOutput{
+	outputData := ErrorOutput{
 		Filename: baseName,
 		Msg:      apiResponse.Message,
 		Errors:   apiResponse.Error,
