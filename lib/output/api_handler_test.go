@@ -1,4 +1,4 @@
-package main
+package output
 
 import (
 	"encoding/json"
@@ -10,98 +10,22 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"pncheck/lib/input"
 )
 
 // --- テスト用データ ---
-var testValidSheet = Sheet{ // convertToJSON, postToConfirmAPI のテストで使用
-	Config: Config{Validatable: true, Sortable: false},
-	Header: Header{
+var testValidSheet = input.Sheet{ // convertToJSON, postToConfirmAPI のテストで使用
+	Config: input.Config{Validatable: true, Sortable: false},
+	Header: input.Header{
 		ProjectID:   "000001234512345",
 		ProjectName: "テスト",
 		FileName:    "test.xlsx",
 	},
-	Orders: Orders{
+	Orders: input.Orders{
 		{Pid: "PN-001", Quantity: 10, UnitPrice: 100},
 		{Pid: "PN-002", Quantity: 5, UnitPrice: 200},
 	},
-}
-
-// --- convertToJSON のテスト ---
-
-func TestConvertToJSON_Success(t *testing.T) {
-	sheet := testValidSheet
-	jsonData, err := convertToJSON(sheet)
-	if err != nil {
-		t.Fatalf("予期せぬエラー: %v", err)
-	}
-
-	// 簡単なJSON内容チェック (特定のキーが存在するかなど)
-	var result map[string]interface{}
-	if err := json.Unmarshal(jsonData, &result); err != nil {
-		t.Fatalf("生成されたJSONのパースに失敗: %v", err)
-	}
-
-	if _, ok := result["config"]; !ok {
-		t.Error("JSONに 'config' キーが含まれていません")
-	}
-	if _, ok := result["header"]; !ok {
-		t.Error("JSONに 'header' キーが含まれていません")
-	}
-	if _, ok := result["orders"]; !ok {
-		t.Error("JSONに 'orders' キーが含まれていません")
-	}
-
-	// Header内のキーをチェック
-	headerMap, ok := result["header"].(map[string]interface{})
-	if !ok {
-		t.Fatal("JSONの 'header' がマップではありません")
-	}
-	if _, ok := headerMap["製番"]; !ok { // json:"製番" タグを確認
-		t.Error("JSONの 'header' に '製番' キーが含まれていません")
-	}
-
-	// Ordersが配列かチェック
-	ordersArray, ok := result["orders"].([]interface{})
-	if !ok {
-		t.Fatal("JSONの 'orders' が配列ではありません")
-	}
-	if len(ordersArray) != len(sheet.Orders) {
-		t.Errorf("JSONの 'orders' の要素数が異なります: 期待値=%d, 実際値=%d", len(sheet.Orders), len(ordersArray))
-	}
-	// Orders内のキーをチェック (最初の要素)
-	if len(ordersArray) > 0 {
-		orderMap, ok := ordersArray[0].(map[string]interface{})
-		if !ok {
-			t.Fatal("JSONの 'orders' の要素がマップではありません")
-		}
-		if _, ok := orderMap["品番"]; !ok { // json:"品番" タグを確認
-			t.Error("JSONの 'orders' の要素に '品番' キーが含まれていません")
-		}
-		if _, ok := orderMap["数量"]; !ok {
-			t.Error("JSONの 'orders' の要素に '数量' キーが含まれていません")
-		}
-	}
-}
-
-func TestConvertToJSON_EmptySheet(t *testing.T) {
-	sheet := Sheet{} // 空の構造体
-	jsonData, err := convertToJSON(sheet)
-	if err != nil {
-		t.Fatalf("予期せぬエラー: %v", err)
-	}
-
-	// 空のJSON (`{"config":{},"header":{},"orders":null}` のような形になるはず)
-	expectedJSON := `{"config":{"validatable":false,"sortable":false},"header":{"発注区分":"","製番":"","製番名称":"","要求年月日":"","製番納期":"","ファイル名":"","備考":""},"orders":null}`
-	// reflect.DeepEqual だと orders:null と orders:[] で差が出る可能性があるので文字列比較
-	if string(jsonData) != expectedJSON {
-		t.Errorf("空のSheetのJSONが期待値と異なります。\n期待値: %s\n実際値: %s", expectedJSON, string(jsonData))
-	}
-
-	// 一応パース可能か確認
-	var result map[string]interface{}
-	if err := json.Unmarshal(jsonData, &result); err != nil {
-		t.Fatalf("生成された空JSONのパースに失敗: %v", err)
-	}
 }
 
 // --- postToConfirmAPI のテスト ---
@@ -123,7 +47,7 @@ func TestPostToConfirmAPI_Success(t *testing.T) {
 		}
 		// リクエストボディを検証 (オプション)
 		bodyBytes, _ := io.ReadAll(r.Body)
-		var receivedSheet Sheet
+		var receivedSheet input.Sheet
 		if err := json.Unmarshal(bodyBytes, &receivedSheet); err != nil {
 			t.Errorf("リクエストボディのJSONパース失敗: %v", err)
 		}
