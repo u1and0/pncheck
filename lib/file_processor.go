@@ -2,7 +2,6 @@ package lib
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -11,8 +10,6 @@ import (
 	"pncheck/lib/input"
 	"pncheck/lib/output"
 )
-
-var pnsearchServerAddress string // 例: "http://localhost:8080" (ビルド時に注入)
 
 // サーバーからのエラー出力のうち、このコマンドで使用するもの
 type ErrorOutput struct {
@@ -43,10 +40,6 @@ func (eo *ErrorOutput) WriteErrorFile(path string) error {
 // ProcessExcelFile は1つのExcelファイルを処理し、その結果を FileProcessResult として返します。
 // 内部でファイルの読み込み、JSON変換、API呼び出し、レスポンス処理を行います。
 func ProcessExcelFile(filePath string) (*ErrorOutput, error) {
-	if pnsearchServerAddress == "" {
-		return nil, errors.New("APIサーバーアドレスが設定されていません")
-	}
-
 	// Excel読み込み
 	sheet, err := input.ReadExcelToSheet(filePath)
 	if err != nil {
@@ -54,13 +47,13 @@ func ProcessExcelFile(filePath string) (*ErrorOutput, error) {
 	}
 
 	// API呼び出し
-	body, code, err := output.PostToConfirmAPI(sheet, pnsearchServerAddress)
+	body, code, err := sheet.Post()
 	if err != nil {
 		return nil, fmt.Errorf("API通信エラー: %w", err)
 	}
 
 	// 4. APIレスポンス解析とエラー出力 (ボディがあれば実行)
-	if body == nil || len(body) < 1 {
+	if err!=nil || body == nil || len(body) < 1 {
 		return nil, fmt.Errorf("APIレスポンス解析エラー (ステータス: %d): %w", code, err)
 	}
 
