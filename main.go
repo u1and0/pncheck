@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"pncheck/lib"
@@ -19,7 +20,7 @@ func main() {
 	for _, filePath := range filePaths {
 		err := lib.ProcessExcelFile(filePath)
 		if err != nil {
-			fmt.Printf("Error: %s\n", err)
+			log.Printf("Error: %s\n", err)
 		}
 	}
 }
