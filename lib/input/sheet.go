@@ -132,7 +132,7 @@ func (sheet *Sheet) Post() (body []byte, statusCode int, err error) {
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		// ボディ読み込み失敗は致命的エラー
-		err = fmt.Errorf("APIレスポンスボディの読み込みに失敗しました (ステータス: %d): %w", statusCode, err)
+		err = fmt.Errorf("APIレスポンスボディの読み込みに失敗しました: %w", err)
 		return
 	}
 	return

@@ -3,6 +3,7 @@ package output
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"pncheck/lib/input"
 )
@@ -30,4 +31,13 @@ func HandleAPIResponse(responseBody []byte) (PNResponse, error) {
 		return PNResponse{}, fmt.Errorf("APIレスポンスJSONのデコードに失敗しました: %w", err)
 	}
 	return pnResponse, nil
+}
+
+// JSONをファイルに書き込む関数
+func (data *PNResponse) WriteJSON(filename string) error {
+	jsonData, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filename, jsonData, 0644)
 }
