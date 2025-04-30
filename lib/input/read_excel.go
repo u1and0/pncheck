@@ -50,10 +50,19 @@ const (
 func ReadExcelToSheet(filePath string) (Sheet, error) {
 	var sheet Sheet
 
-	// --- ファイルを開く ---
+	// 渡されたファイルがディレクトリの場合は無視
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return sheet, fmt.Errorf("ファイル情報読み込みエラー: %w\n", err)
+	}
+
+	if fileInfo.IsDir() {
+		return sheet, fmt.Errorf("%s はディレクトリです\n", filePath)
+	}
+
 	f, err := excelize.OpenFile(filePath)
 	if err != nil {
-		return sheet, fmt.Errorf("ファイルを開けません '%s': %w", filePath, err)
+		return sheet, fmt.Errorf("ファイルを開けません '%s': %w\n", filePath, err)
 	}
 	defer func() {
 		if err := f.Close(); err != nil {
@@ -169,21 +178,13 @@ func getCellValue(f *excelize.File, sheetName, axis string) string {
 	return strings.TrimSpace(val)
 }
 
-
 // FilenameWithoutExt : ファイルパスを渡して
 // 拡張子なしのファイル名を返す
 // ディレクトリの場合、Base名をそのまま返す
 func FilenameWithoutExt(filePath string) string {
-	fileInfo, err := os.Stat(filePath)
-	if err != nil {
+	if filePath == "" {
 		return ""
 	}
-
-	if fileInfo.IsDir() {
-		// ディレクトリの場合はエラー
-		return filepath.Base(filePath)
-	}
-
 	base := filepath.Base(filePath)
 	ext := filepath.Ext(filePath)
 	return strings.TrimSuffix(base, ext)
