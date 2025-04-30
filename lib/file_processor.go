@@ -57,30 +57,27 @@ func ProcessExcelFile(filePath string) error {
 			return fmt.Errorf("エラーファイル '%s' へのJSONデータ書き込みに失敗しました: %w", jsonPath, err)
 		}
 
-	// fatal_report.logを開いて、エラーの内容を追記する。
-	// すでにfatal_report.logが存在しても初期化しないで内容を追記する
-	// ファイルが存在する場合、内容を読み取る
+	// 200-400番台以外はサーバーエラーとして
+	// fatal_report.logにエラーの内容を追記する。
 	default:
-		var data []byte
-		if _, err := os.Stat(fatalLog); err == nil {
-			data, err = os.ReadFile(fatalLog)
-			if err != nil {
-				return err
-			}
-		}
-
-		// エラーの内容を追記
 		now := time.Now().Format("2006/01/02 15:04:05")
 		msg := now + ": PNSearch /confirm API への通信に失敗しました。\n"
-		if data != nil {
-			data = append(data, []byte(msg)...)
-		} else {
-			data = []byte(msg)
-		}
-
-		// ファイルに書き込み
-		return os.WriteFile(fatalLog, data, 0644)
+		return appendToFile(fatalLog, msg)
 	}
 
 	return nil
+}
+
+// appendToFile : ファイルの末尾に書き込む
+// O_APPEND: ファイルの末尾に書き込む
+// O_CREATE: ファイルが存在しない場合は作成する
+// O_WRONLY: 書き込み専用で開く
+func appendToFile(filePath string, msg string) error {
+	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.WriteString(msg)
+	return err
 }
