@@ -176,7 +176,7 @@ func getCellValue(f *excelize.File, sheetName, axis string) string {
 // G: 外注 OrderType = "外注"
 // それ以外: 不明 OrderType = "不明" // 不正な区分の場合
 func parseOrderType(filePath string) OrderType {
-	f := filenameWithoutExt(filePath)
+	f := FilenameWithoutExt(filePath)
 	// "-"で区切って4ブロック目の最初の文字
 	blocks := strings.Split(f, "-")
 	// fmt.Println("[DEBUG] parseOrderType() split filename: ", blocks)
@@ -197,10 +197,10 @@ func parseOrderType(filePath string) OrderType {
 	}
 }
 
-// filenameWithoutExt : ファイルパスを渡して
+// FilenameWithoutExt : ファイルパスを渡して
 // 拡張子なしのファイル名を返す
 // ディレクトリの場合、Base名をそのまま返す
-func filenameWithoutExt(filePath string) string {
+func FilenameWithoutExt(filePath string) string {
 	fileInfo, err := os.Stat(filePath)
 	if err != nil {
 		return ""
