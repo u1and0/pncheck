@@ -1,4 +1,4 @@
-package output
+package input
 
 import (
 	"encoding/json"
@@ -10,19 +10,17 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"pncheck/lib/input"
 )
 
 // --- テスト用データ ---
-var testValidSheet = input.Sheet{ // convertToJSON, postToConfirmAPI のテストで使用
-	Config: input.Config{Validatable: true, Sortable: false},
-	Header: input.Header{
+var testValidSheet = Sheet{ // convertToJSON, postToConfirmAPI のテストで使用
+	Config: Config{Validatable: true, Sortable: false},
+	Header: Header{
 		ProjectID:   "000001234512345",
 		ProjectName: "テスト",
 		FileName:    "test.xlsx",
 	},
-	Orders: input.Orders{
+	Orders: Orders{
 		{Pid: "PN-001", Quantity: 10, UnitPrice: 100},
 		{Pid: "PN-002", Quantity: 5, UnitPrice: 200},
 	},
@@ -47,7 +45,7 @@ func TestPostToConfirmAPI_Success(t *testing.T) {
 		}
 		// リクエストボディを検証 (オプション)
 		bodyBytes, _ := io.ReadAll(r.Body)
-		var receivedSheet input.Sheet
+		var receivedSheet Sheet
 		if err := json.Unmarshal(bodyBytes, &receivedSheet); err != nil {
 			t.Errorf("リクエストボディのJSONパース失敗: %v", err)
 		}
@@ -60,8 +58,7 @@ func TestPostToConfirmAPI_Success(t *testing.T) {
 	defer server.Close()
 
 	// テスト対象関数を実行
-	jsonData, _ := convertToJSON(testValidSheet)
-	responseBody, _, err := postToConfirmAPI(jsonData, server.URL) // モックサーバーのアドレスを使用
+	responseBody, _, err := testValidSheet.Post()
 
 	// 結果を検証
 	if err != nil {
@@ -84,8 +81,7 @@ func TestPostToConfirmAPI_ApiError(t *testing.T) {
 	defer server.Close()
 
 	// テスト対象関数を実行
-	jsonData, _ := convertToJSON(testValidSheet)
-	_, code, err := postToConfirmAPI(jsonData, server.URL)
+	_, code, err := testValidSheet.Post()
 
 	// 結果を検証 (エラーが発生し、メッセージにステータスコードとレスポンスが含まれること)
 	if err == nil {
@@ -116,8 +112,7 @@ func TestPostToConfirmAPI_Timeout(t *testing.T) {
 	defer func() { defaultTimeout = originalTimeout }() // テスト終了後に元に戻す
 
 	// テスト対象関数を実行
-	jsonData, _ := convertToJSON(testValidSheet)
-	_, _, err := postToConfirmAPI(jsonData, server.URL)
+	_, _, err := testValidSheet.Post()
 
 	// 結果を検証 (タイムアウトエラーが発生すること)
 	if err == nil {
@@ -131,8 +126,7 @@ func TestPostToConfirmAPI_Timeout(t *testing.T) {
 }
 
 func TestPostToConfirmAPI_EmptyServerAddress(t *testing.T) {
-	jsonData, _ := convertToJSON(testValidSheet)
-	_, _, err := postToConfirmAPI(jsonData, "") // 空のアドレス
+	_, _, err := testValidSheet.Post()
 	if err == nil {
 		t.Fatal("サーバーアドレスが空の場合にエラーが返されませんでした")
 	}

@@ -109,13 +109,13 @@ func setValidLayout(f *excelize.File) {
 // expectedSheet.Header.ProjectID の期待値を修正
 func TestReadExcelToSheet_Success(t *testing.T) {
 	testDir := "testdata_read"
-	testFile := createTestExcelFile(t, testDir, "success_read.xlsx", setValidLayout)
+	testFile := createTestExcelFile(t, testDir, "success-001-read-K.xlsx", setValidLayout)
 
 	expectedSheet := Sheet{
-		Config: Config{Validatable: true, Sortable: false},
+		Config: Config{Validatable: true, Sortable: true},
 		Header: Header{
-			OrderType:   購入,                  // ファイル名から取得される (※要確認セル B2 -> parseFileNameInfo に変更)
-			ProjectID:   "1234501",           // ★ 修正: 親番("12345") + 枝番("01") で結合された文字列
+			OrderType:   購入,
+			ProjectID:   "1234501",           // D1 + F1
 			ProjectName: "テストプロジェクト",         // D5
 			RequestDate: "2023/10/27",        // D4
 			Deadline:    "2023/11/30",        // D2
@@ -153,8 +153,8 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 	// ↑ parseFileNameInfo が filePath を受け取るので、テストファイル自体の名前を期待値に合わせるか、
 	//   parseFileNameInfo の引数を固定値にするなどの工夫が必要
 
-	// ---- parseFileNameInfo を直接呼び出すのではなく、readExcelToSheet内で呼ばれることを考慮 ----
-	// readExcelToSheet は filePath を引数にとり、その中で parseFileNameInfo(filePath) を呼ぶ
+	// ---- parseFileNameInfo を直接呼び出すのではなく、ReadExcelToSheet内で呼ばれることを考慮 ----
+	// ReadExcelToSheet は filePath を引数にとり、その中で parseFileNameInfo(filePath) を呼ぶ
 	// そのため、テスト用のExcelファイル名自体が parseFileNameInfo のフォーマットに合致している必要がある
 
 	// テストファイル名を parseFileNameInfo が成功する形式にする
@@ -167,7 +167,7 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 	// 期待値の FileName も合わせる
 	expectedSheet.Header.FileName = correctFormatFileName
 
-	actualSheet, err := readExcelToSheet(testFile)
+	actualSheet, err := ReadExcelToSheet(testFile)
 	if err != nil {
 		t.Fatalf("予期せぬエラーが発生しました: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 }
 
 func TestReadExcelToSheet_FileNotFound(t *testing.T) {
-	_, err := readExcelToSheet("testdata_read/non_existent_file-K.xlsx")
+	_, err := ReadExcelToSheet("testdata_read/non_existent_file-K.xlsx")
 	if err == nil {
 		t.Fatal("ファイルが存在しない場合にエラーが返されませんでした。")
 	}
@@ -210,7 +210,7 @@ func TestReadExcelToSheet_InvalidNumberFormat_Orders(t *testing.T) {
 		f.SetCellValue(orderSheetName, colQuantity+"2", "Not A Number") // 2行目の数量に文字列
 	})
 
-	_, err := readExcelToSheet(testFile)
+	_, err := ReadExcelToSheet(testFile)
 	if err == nil {
 		t.Fatal("明細行の数値変換エラーが検出されませんでした。")
 	}
@@ -244,7 +244,7 @@ func TestReadExcelToSheet_EmptySheet(t *testing.T) {
 		FileName: correctFormatFileName,
 	}
 
-	sheet, err := readExcelToSheet(testFile)
+	sheet, err := ReadExcelToSheet(testFile)
 	if err != nil {
 		// parseFileNameInfo でエラーになる可能性があるためチェック
 		t.Fatalf("空の明細シートで予期せぬエラー: %v", err)
@@ -272,43 +272,43 @@ func TestParseOrderType(t *testing.T) {
 		expected OrderType
 	}{
 		// --- Happy Path Cases (Valid Endings) ---
-		{"Valid S Ending", "path/to/222-some-file-S", "出庫"},
-		{"Valid K Ending", "another/dir/222-222-data-K", "購入"},
-		{"Valid G Ending", "just-a-name-G", "外注"},
-		{"Valid S Ending - No Path", "file-tbd-20-S-2", "出庫"},
-		{"Valid K Ending - No Path", "doc-123--K-1", "購入"},
-		{"Valid G Ending - No Path", "2002-1234-tbd-G-3", "外注"},
-		{"Valid S Ending - Multiple Hyphens", "prefix-middle-suffix-S", "出庫"},
-		{"Valid K Ending - Multiple Hyphens", "a-b-c-K", "購入"},
-		{"Valid G Ending - Multiple Hyphens", "x-y-z-G", "外注"},
-		{"Valid S Ending - Hyphen at Start", "202-231-tbd-S", "出庫"}, // filepath.Base is "-file-S", split is ["", "file", "S"]
+		{"Valid S Ending", "path/to/222-some-file-S", 出庫},
+		{"Valid K Ending", "another/dir/222-222-data-K", 購入},
+		{"Valid G Ending", "just-a-name-G", 外注},
+		{"Valid S Ending - No Path", "file-tbd-20-S-2", 出庫},
+		{"Valid K Ending - No Path", "doc-123--K-1", 購入},
+		{"Valid G Ending - No Path", "2002-1234-tbd-G-その3", 外注},
+		{"Valid S Ending - Multiple Hyphens", "prefix-middle-suffix-S", 出庫},
+		{"Valid K Ending - Multiple Hyphens", "a-b-c-K", 購入},
+		{"Valid G Ending - Multiple Hyphens", "x-y-z-G", 外注},
+		{"Valid S Ending - Hyphen at Start", "202-231-tbd-S", 出庫}, // filepath.Base is "-file-S", split is ["", "file", "S"]
 
 		// --- Unhappy Path Cases (Invalid Endings / Default) ---
-		{"Invalid Ending - X", "file-X", "不明"},
-		{"Invalid Ending - ABC", "data-abc", "不明"},
-		{"Invalid Ending - Number", "report-123", "不明"},
-		{"Invalid Ending - Empty String after Hyphen", "file-", "不明"}, // Split results in ["file", ""], last is ""
-		{"Invalid Ending - Lowercase s", "file--s", "不明"},             // Case sensitive
-		{"Invalid Ending - Lowercase k", "file---k", "不明"},
-		{"Invalid Ending - Lowercase g", "file--g", "不明"},
-		{"Invalid Ending - Mixed Case", "file--S ", "不明"}, // Trailing space
+		{"Invalid Ending - X", "file-X", 不明},
+		{"Invalid Ending - ABC", "data-abc", 不明},
+		{"Invalid Ending - Number", "report-123", 不明},
+		{"Invalid Ending - Empty String after Hyphen", "file-", 不明}, // Split results in ["file", ""], last is ""
+		{"Invalid Ending - Lowercase s", "file--s", 不明},             // Case sensitive
+		{"Invalid Ending - Lowercase k", "file---k", 不明},
+		{"Invalid Ending - Lowercase g", "file--g", 不明},
+		{"Invalid Ending - Mixed Case", "file--S ", 不明}, // Trailing space
 
 		// --- Edge Cases (No Hyphens, Empty, etc.) ---
-		{"No Hyphens - Just S", "S", "不明"}, // Last block is "S", but not after a hyphen
-		{"No Hyphens - Just K", "K", "不明"},
-		{"No Hyphens - Just G", "G", "不明"},
-		{"No Hyphens - Regular Filename", "myfile.txt", "不明"},       // Last block is "myfile.txt"
-		{"No Hyphens - Filename with Dots", "archive.tar.gz", "不明"}, // Last block is "archive.tar.gz"
-		{"Empty String Input", "", "不明"},                            // filepath.Base("") is ".", Split(".") is [".", ""], last is "" -> "不明" (behavior might vary slightly by OS, but "." or "" are common)
-		{"Just a Hyphen", "-", "不明"},                                // filepath.Base("-") is "-", Split("-") is ["", ""], last is "" -> "不明"
-		{"Hyphen at End", "file-S-", "不明"},                          // filepath.Base("file-S-") is "file-S-", Split is ["file", "S", ""], last is "" -> "不明"
-		{"Hyphen at Start and End", "-file-S-", "不明"},               // filepath.Base is "-file-S-", Split is ["", "file", "S", ""], last is "" -> "不明"
+		{"No Hyphens - Just S", "S", 不明}, // Last block is "S", but not after a hyphen
+		{"No Hyphens - Just K", "K", 不明},
+		{"No Hyphens - Just G", "G", 不明},
+		{"No Hyphens - Regular Filename", "myfile.txt", 不明},       // Last block is "myfile.txt"
+		{"No Hyphens - Filename with Dots", "archive.tar.gz", 不明}, // Last block is "archive.tar.gz"
+		{"Empty String Input", "", 不明},                            // filepath.Base("") is ".", Split(".") is [".", ""], last is "" -> "不明" (behavior might vary slightly by OS, but "." or "" are common)
+		{"Just a Hyphen", "-", 不明},                                // filepath.Base("-") is "-", Split("-") is ["", ""], last is "" -> "不明"
+		{"Hyphen at End", "file-S-", 不明},                          // filepath.Base("file-S-") is "file-S-", Split is ["file", "S", ""], last is "" -> "不明"
+		{"Hyphen at Start and End", "-file-S-", 不明},               // filepath.Base is "-file-S-", Split is ["", "file", "S", ""], last is "" -> "不明"
 
 		// --- Directory Path Cases ---
-		{"Directory Path - No File", "/path/to/dir/", "不明"}, // filepath.Base is "dir"
-		{"Root Directory Path", "/", "不明"},                  // filepath.Base is "/"
-		{"Current Directory", ".", "不明"},                    // filepath.Base is "."
-		{"Parent Directory", "..", "不明"},                    // filepath.Base is ".."
+		{"Directory Path - No File", "/path/to/dir/", 不明}, // filepath.Base is "dir"
+		{"Root Directory Path", "/", 不明},                  // filepath.Base is "/"
+		{"Current Directory", ".", 不明},                    // filepath.Base is "."
+		{"Parent Directory", "..", 不明},                    // filepath.Base is ".."
 	}
 
 	for _, tc := range tests {
@@ -319,4 +319,59 @@ func TestParseOrderType(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFilenameWithoutExt(t *testing.T) {
+	tests := []struct {
+		name     string
+		filePath string
+		want     string
+	}{
+		{"file with extension", "/path/to/file.txt", "file"},
+		{"file without extension", "/path/to/file", "file"},
+		{"file with multiple extensions", "/path/to/file.tar.gz", "file.tar"},
+		{"file with dot in name", "/path/to/file.with.dots.txt", "file.with.dots"},
+		{"empty string", "", ""},
+		{"just a dot", ".", "."},
+		{"just a slash", "/", ""},
+		{"no path", "file.txt", "file"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := filenameWithoutExt(tt.filePath); got != tt.want {
+				t.Errorf("filenameWithoutExt(%q) = %q, want %q", tt.filePath, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFilenameWithoutExtEdgeCases(t *testing.T) {
+	tests := []struct {
+		name     string
+		filePath string
+	}{
+		{"nil string", ""}, // This will panic, we should add a check for nil
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("filenameWithoutExt(%v) did not panic", tt.filePath)
+				}
+			}()
+			filenameWithoutExt(tt.filePath)
+		})
+	}
+}
+
+func TestFilenameWithoutExtError(t *testing.T) {
+	var filePath string
+	defer func() {
+		if r := recover(); r != nil {
+			t.Logf("Recovered in filenameWithoutExt: %v", r)
+		}
+	}()
+	filenameWithoutExt(filePath)
 }

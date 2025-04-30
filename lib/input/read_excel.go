@@ -62,8 +62,8 @@ func ReadExcelToSheet(filePath string) (Sheet, error) {
 
 	// --- Configを設定 (現在は固定値) ---
 	sheet.Config = Config{
-		Validatable: true,  // デフォルトでバリデーションONとする (仮)
-		Sortable:    false, // デフォルトでソートOFFとする (仮)
+		Validatable: true, // とりあえずtrueに設定
+		Sortable:    true, // pncheckを使う段階ではどちらでも良い
 	}
 
 	// --- ヘッダー情報を読み込む (主に headerSheetName = "入力Ⅱ" から) ---
@@ -175,9 +175,10 @@ func getCellValue(f *excelize.File, sheetName, axis string) string {
 // G: 外注 OrderType = "外注"
 // それ以外: 不明 OrderType = "不明" // 不正な区分の場合
 func parseOrderType(filePath string) OrderType {
-	baseName := filepath.Base(filePath)
+	f := filenameWithoutExt(filePath)
 	// "-"で区切って4ブロック目の最初の文字
-	blocks := strings.Split(baseName, "-")
+	blocks := strings.Split(f, "-")
+	// fmt.Println("[DEBUG] parseOrderType() split filename: ", blocks)
 	if len(blocks) < 4 {
 		return "不明"
 	}
@@ -185,12 +186,18 @@ func parseOrderType(filePath string) OrderType {
 	// OrderTypeを決定
 	switch lastBlock {
 	case "S":
-		return "出庫"
+		return 出庫
 	case "K":
-		return "購入"
+		return 購入
 	case "G":
-		return "外注"
+		return 外注
 	default:
-		return "不明"
+		return 不明
 	}
+}
+
+func filenameWithoutExt(filePath string) string {
+	base := filepath.Base(filePath)
+	ext := filepath.Ext(filePath)
+	return strings.TrimSuffix(base, ext)
 }

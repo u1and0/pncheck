@@ -83,15 +83,6 @@ type (
 	}
 )
 
-func init() {
-	if serverAddress == "" {
-		log.Fatalln(
-			`APIサーバーアドレスが空です。ビルド時に設定する必要があります。
-$ go build -ldflags="-X pncheck/lib/input.serverAddress=http://localhost:8080"`,
-		)
-	}
-}
-
 // Sheet.Post() でサーバーへポスト
 // 戻り値はbody, code, error
 // code のデフォルト値は500
@@ -100,6 +91,13 @@ $ go build -ldflags="-X pncheck/lib/input.serverAddress=http://localhost:8080"`,
 // レスポンスボディ、HTTPステータスコード、エラーを返します。
 // ステータスコードが2xx以外でも、ボディがあれば読み込んで返します。
 func (sheet *Sheet) Post() (body []byte, statusCode int, err error) {
+	if serverAddress == "" {
+		log.Fatalln(
+			`APIサーバーアドレスが空です。ビルド時に設定する必要があります。
+$ go build -ldflags="-X pncheck/lib/input.serverAddress=http://localhost:8080"`,
+		)
+	}
+
 	var apiURL = serverAddress + apiEndpointPath
 	statusCode = 500 // デフォルト500
 

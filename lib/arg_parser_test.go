@@ -7,11 +7,6 @@ import (
 	"testing"
 )
 
-// TestParseArguments は parseArguments 関数のテストです。
-// os.Args を直接書き換えるため、他のテストと並行実行しないように注意が必要です。
-// (実際にはサブプロセスを起動するなど、より堅牢なテスト方法もあります)
-// arg_parser_test.go
-
 func TestParseArguments(t *testing.T) {
 	oldArgs := os.Args
 	// flag.CommandLine の元の状態を保存 (テスト全体で1回)
@@ -57,10 +52,10 @@ func TestParseArguments(t *testing.T) {
 			// flag.ContinueOnError を使うか、エラーをハンドリングする
 			flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError) // または flag.PanicOnError
 
-			gotPaths, err := parseArguments() // ここで flag.Parse() が呼ばれる
+			gotPaths, err := ParseArguments() // ここで flag.Parse() が呼ばれる
 
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseArguments() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ParseArguments() error = %v, wantErr %v", err, tt.wantErr)
 				// エラーが期待通りでない場合、flagパッケージからのエラーメッセージも確認すると良い
 				// if err != nil { t.Logf("  flag error: %v", err) }
 				return
@@ -69,7 +64,7 @@ func TestParseArguments(t *testing.T) {
 			// if tt.wantErr && err == nil { ... }
 
 			if !reflect.DeepEqual(gotPaths, tt.wantPaths) {
-				t.Errorf("parseArguments() gotPaths = %v, want %v", gotPaths, tt.wantPaths)
+				t.Errorf("ParseArguments() gotPaths = %v, want %v", gotPaths, tt.wantPaths)
 			}
 		})
 	}
