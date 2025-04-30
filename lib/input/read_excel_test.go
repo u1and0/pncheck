@@ -334,8 +334,8 @@ func TestFilenameWithoutExt(t *testing.T) {
 		{"file with dot in name", "/path/to/file.with.dots.txt", "file.with.dots"},
 		{"file with double dot in name", "/path/to/file..txt", "file."},
 		{"empty string", "", ""},
-		// {"just a dot", ".", ""},
-		// {"just a slash", "/", ""},
+		{"just a dot", ".", ""},
+		{"just a slash", "/", "/"},
 		{"no path", "file.txt", "file"},
 	}
 
