@@ -30,23 +30,20 @@ func WriteErrorToJSON(jsonPath string, body []byte) error {
 	return nil
 }
 
-// LogFatalError logs fatal errors to the fatal_report.log file
-func LogFatalError() error {
-	now := time.Now().Format("2006/01/02 15:04:05")
-	msg := now + ": PNSearch /confirm API への通信に失敗しました。\n"
-	return appendToFile(fatalLogFilename, msg)
-}
-
-// appendToFile : ファイルの末尾に書き込む
-// O_APPEND: ファイルの末尾に書き込む
-// O_CREATE: ファイルが存在しない場合は作成する
-// O_WRONLY: 書き込み専用で開く
-func appendToFile(filePath string, msg string) error {
-	file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+// LogFatalError : エラーの内容をエラーログファイルに追記する
+func LogFatalError(err error) error {
+	// O_APPEND: ファイルの末尾に書き込む
+	// O_CREATE: ファイルが存在しない場合は作成する
+	// O_WRONLY: 書き込み専用で開く
+	file, err := os.OpenFile(fatalLogFilename,
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
+
+	now := time.Now().Format("2006/01/02 15:04:05")
+	msg := fmt.Sprintf("%s: %s\n", now, err)
 	_, err = file.WriteString(msg)
 	return err
 }

@@ -10,25 +10,7 @@ import (
 	"time"
 )
 
-type OrderType string
-
-const (
-	// APIのエンドポイントパス (固定値とする)
-	apiEndpointPath           = "/api/v1/requests/confirm"
-	購入              OrderType = "購入"
-	外注              OrderType = "外注"
-	出庫              OrderType = "出庫"
-	不明              OrderType = "不明" // 不正な区分の場合
-)
-
 var (
-	// ValidOrderTypes : ファイル名から判定される発注区分
-	ValidOrderTypes = map[string]OrderType{
-		"S": 出庫,
-		"K": 購入,
-		"G": 外注,
-	}
-
 	// defaultTimeout : API通信のデフォルトタイムアウト
 	defaultTimeout = 30 * time.Second
 

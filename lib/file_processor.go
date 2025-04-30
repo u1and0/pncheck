@@ -36,10 +36,6 @@ func ProcessExcelFile(filePath string) error {
 	if err != nil {
 		return fmt.Errorf("API通信エラー: %w", err)
 	}
-	// APIレスポンス解析とエラー出力 (ボディがあれば実行)
-	if body == nil || len(body) < 1 {
-		return fmt.Errorf("APIレスポンス解析エラー (ステータス: %d): %w", code, err)
-	}
 	return handleResponse(filePath, body, code)
 }
 
@@ -49,23 +45,25 @@ func ProcessExcelFile(filePath string) error {
 // 400番台ステータスコードはファイル名.jsonにエラーの内容を書き込む
 // 500番台ステータスコードはPOSTに失敗しているので、faital_report.log にエラーを書き込み
 func handleResponse(filePath string, body []byte, code int) error {
-	switch {
-	// 成功したらコンソールに成功メッセージを書くだけ
-	case code < successCode:
-		fmt.Println("Success:", filePath)
-		return nil
-
-	// TODO
-	// 警告の場合はJSON?コンソールに成功メッセージを書くだけ？
-	// case code < 400:
-	// 	fmt.Println("Warning:", filePath)
+	// APIレスポンス解析とエラー出力 (ボディがあれば実行)
+	if body == nil || len(body) < 1 {
+		return fmt.Errorf("APIレスポンス解析エラー bodyがありません(ステータス: %d)", code)
+	}
+	if code >= errorCode {
+		return fmt.Errorf("APIレスポンス解析エラー (ステータス: %d): %s", code, body)
+	}
 
 	// 400番台はPNResponseをJSONに書き込む
-	case code < errorCode:
+	if code >= successCode {
+		// TODO
+		// 警告の場合はJSON?コンソールに成功メッセージを書くだけ？
+		// case code < 400:
+		// 	fmt.Println("Warning:", filePath)
+
 		jsonFilename := input.FilenameWithoutExt(filePath) + ".json"
 		return output.WriteErrorToJSON(jsonFilename, body)
-
-	default: // 500+ status codes
-		return output.LogFatalError()
 	}
+	// 成功したらコンソールに成功メッセージを書くだけ
+	fmt.Println("Success:", filePath)
+	return nil
 }
