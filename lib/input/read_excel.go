@@ -2,6 +2,7 @@ package input
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -196,7 +197,20 @@ func parseOrderType(filePath string) OrderType {
 	}
 }
 
+// filenameWithoutExt : ファイルパスを渡して
+// 拡張子なしのファイル名を返す
+// ディレクトリの場合、Base名をそのまま返す
 func filenameWithoutExt(filePath string) string {
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return ""
+	}
+
+	if fileInfo.IsDir() {
+		// ディレクトリの場合はエラー
+		return filepath.Base(filePath)
+	}
+
 	base := filepath.Base(filePath)
 	ext := filepath.Ext(filePath)
 	return strings.TrimSuffix(base, ext)

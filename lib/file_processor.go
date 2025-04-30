@@ -35,15 +35,17 @@ func ProcessExcelFile(filePath string) error {
 	fmt.Printf("Response: %d: %s", code, body)
 
 	// codeに対する処理を分岐
-	// 200で成功なら何もしない
-	// 300-400番台ステータスコードはファイル名.jsonにエラーの内容を書き込む
+	// 200-300台ステータスコードは何もしない
+	// 400番台ステータスコードはファイル名.jsonにエラーの内容を書き込む
 	// 500番台ステータスコードはPOSTに失敗しているので、faital_report.log にエラーを書き込み
 	switch {
-	// 成功したらコンソールに成功メッセージを書くだけ
+	// 成功または警告したらコンソールに成功メッセージを書くだけ
 	case code < 300:
 		fmt.Println("Success:", filePath)
+	case code < 400:
+		fmt.Println("Warning:", filePath)
 
-	// 300,400番台はPNResponseをJSONに書き込む
+	// 400番台はPNResponseをJSONに書き込む
 	case code < 500:
 		jsonPath := filepath.Base(filePath) + ".json"
 		f, err := os.Create(jsonPath)

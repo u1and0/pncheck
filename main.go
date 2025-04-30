@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -12,13 +11,21 @@ func main() {
 	// コマンドライン引数を解析
 	filePaths, err := lib.ParseArguments()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "エラー: %v\n", err)
-		os.Exit(1) // 引数エラーは終了コード1
+		log.Fatal(err)
 	}
 
 	// 各ファイルを処理
 	for _, filePath := range filePaths {
-		err := lib.ProcessExcelFile(filePath)
+		// 渡されたファイルがディレクトリの場合は無視
+		fileInfo, err := os.Stat(filePath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if fileInfo.IsDir() {
+			log.Printf("Error: %s is directory \n", filePath)
+			continue
+		}
+		err = lib.ProcessExcelFile(filePath)
 		if err != nil {
 			log.Printf("Error: %s\n", err)
 		}
