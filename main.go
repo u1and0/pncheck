@@ -7,9 +7,11 @@ import (
 	"pncheck/lib/output"
 )
 
+const VERSION = "v1.0.0"
+
 func main() {
 	// コマンドライン引数を解析
-	filePaths, err := lib.ParseArguments()
+	filePaths, err := lib.ParseArguments(VERSION)
 	if err != nil {
 		log.Fatal(err)
 	}
