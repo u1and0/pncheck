@@ -195,6 +195,22 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 	}
 }
 
+func TestReadExcelToSheet_ReadfileError(t *testing.T) {
+	_, err := ReadExcelToSheet("")
+	if err == nil {
+		t.Fatal("不正なパスを与えた場合にエラーが返されませんでした。")
+	}
+	t.Logf("期待通りファイル情報読み込みエラーを検出: %v", err)
+}
+
+func TestReadExcelToSheet_IsDirectory(t *testing.T) {
+	_, err := ReadExcelToSheet("testdata_read")
+	if err == nil {
+		t.Fatal("ディレクトリを与えた場合にエラーが返されませんでした。")
+	}
+	t.Logf("期待通りディレクトリエラーを検出: %v", err)
+}
+
 func TestReadExcelToSheet_FileNotFound(t *testing.T) {
 	_, err := ReadExcelToSheet("testdata_read/non_existent_file-K.xlsx")
 	if err == nil {
