@@ -2,12 +2,14 @@ package lib
 
 import (
 	"fmt"
+	"os"
 
 	"pncheck/lib/input"
 	"pncheck/lib/output"
 )
 
-// これ未満のHTTPステータスコードはswitchに書く処理を行う
+// これより大きいHTTPステータスコードは処理を分岐する
+// 逆に、successCode未満のステータスは成功
 const (
 	successCode = 400
 	errorCode   = 500
@@ -40,16 +42,24 @@ func handleResponse(filePath string, body []byte, code int) error {
 	if body == nil || len(body) < 1 {
 		return fmt.Errorf("APIレスポンス解析エラー bodyがありません(ステータス: %d)", code)
 	}
+	// 500番台はfatal_report_log.json にエラーを追記する
 	if code >= errorCode {
 		return fmt.Errorf("APIレスポンス解析エラー (ステータス: %d): %s", code, body)
 	}
 
-	// 400番台はPNResponseをJSONに書き込む
+	// 400番台はPNResponseをファイル名+.jsonに書き込む
 	if code >= successCode {
 		// TODO
 		// 警告の場合はJSON?コンソールに成功メッセージを書くだけ？
 		// case code < 400:
 		// 	fmt.Println("Warning:", filePath)
+
+		// 標準エラーにResponse とステータスコード、
+		// 標準出力にレスポンス詳細を出力することで
+		// `pncheck XYZ.xlsx | jq`
+		// のようにしてJSONの整形ができる
+		fmt.Fprintf(os.Stderr, "PNSerach response %d\n", code)
+		fmt.Printf("%s\n", body)
 
 		jsonFilename := input.FilenameWithoutExt(filePath) + ".json"
 		return output.WriteErrorToJSON(jsonFilename, body)

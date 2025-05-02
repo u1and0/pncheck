@@ -68,8 +68,7 @@ func ReadExcelToSheet(filePath string) (sheet Sheet, err error) {
 	name := filepath.Base(filePath)
 	sheet = *New(name)
 	// 発注区分をファイル名から分類
-	orderType := parseOrderType(filePath)
-	sheet.Header.OrderType = orderType
+	sheet.Header.OrderType = parseOrderType(filePath)
 	// 発注区分以外のヘッダー情報をExcelファイルから読み込み
 	if err = sheet.Header.read(f); err != nil {
 		return
