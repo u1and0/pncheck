@@ -29,7 +29,7 @@ func WriteErrorToJSON(jsonPath string, body []byte) error {
 }
 
 // LogFatalError : エラーの内容をエラーログファイルに追記する
-func LogFatalError(f string, err error) error {
+func LogFatalError(f string, msg string) error {
 	// O_APPEND: ファイルの末尾に書き込む
 	// O_CREATE: ファイルが存在しない場合は作成する
 	// O_WRONLY: 書き込み専用で開く
@@ -40,7 +40,7 @@ func LogFatalError(f string, err error) error {
 	defer file.Close()
 
 	now := time.Now().Format("2006/01/02 15:04:05.000")
-	msg := fmt.Sprintf("%s: %s\n", now, err)
+	msg = fmt.Sprintf("%s: %s\n", now, msg)
 	_, err = file.WriteString(msg)
 	return err
 }

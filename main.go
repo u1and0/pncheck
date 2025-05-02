@@ -11,7 +11,7 @@ import (
 
 const (
 	VERSION  = "v0.1.0"
-	FATALLOG = "pncheck_fatal_report.json"
+	FATALLOG = "pncheck_fatal_report.log"
 )
 
 func main() {
@@ -25,8 +25,9 @@ func main() {
 	for _, filePath := range filePaths {
 		if err := lib.ProcessExcelFile(filePath); err != nil {
 			// エラーがあったら標準エラーに出力した後FATALLOGに書き込む
-			fmt.Fprintf(os.Stderr, "PNCheck Error: %s\n", err)
-			if err = output.LogFatalError(FATALLOG, err); err != nil {
+			msg := fmt.Sprintf("PNCheck Error: %s\n", err)
+			fmt.Fprintf(os.Stderr, msg)
+			if err = output.LogFatalError(FATALLOG, msg); err != nil {
 				log.Fatalf("Fatal: %s にログを記録できません\n", FATALLOG)
 			}
 		}
