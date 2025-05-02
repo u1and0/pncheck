@@ -14,15 +14,15 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// APIのエンドポイントパス
-const apiEndpointPath = "/api/v1/requests/confirm"
+const (
+	dateLayout      = "2006/01/02"               // サーバーサイドPNSearchが求める日付の型
+	apiEndpointPath = "/api/v1/requests/confirm" // APIのエンドポイントパス
+)
 
 var (
-	// APIサーバーのアドレス "http://localhost:8080" (ビルド時に注入)
-	serverAddress string
-
-	// API通信のデフォルトタイムアウト
-	defaultTimeout = 30 * time.Second
+	serverAddress  string                                         // APIサーバーのアドレス http://localhost:8080 (ビルド時に注入)
+	defaultTimeout = 30 * time.Second                             // API通信のデフォルトタイムアウト
+	dateLayoutSub  = []string{"01-02-06", "2006/1/2", "1/2/2006"} // PNSearch規格外の日付文字列
 )
 
 type (
@@ -89,15 +89,20 @@ func (h *Header) read(f *excelize.File) error {
 	// h.ProjectEda = getCellValue(f, headerSheetName, projectEdaCell)
 
 	h.ProjectName = getCellValue(f, headerSheetName, projectNameCell)
-	h.RequestDate = getCellValue(f, headerSheetName, requestDateCell)
-
-	// 製番納期 (デフォルト値 "―" を考慮)
-	if d := getCellValue(f, headerSheetName, deadlineHCell); d == "―" {
-		h.Deadline = "" // デフォルト値なら空文字にする（または要件に合わせて "―" のまま）
+	// 要求年月日と製番納期は dateLayout の型あるいは空欄に直す
+	d := getCellValue(f, headerSheetName, requestDateCell)
+	if dd, err := parseDateSafe(d); err != nil {
+		return err
 	} else {
-		h.Deadline = d
+		h.RequestDate = dd
 	}
-	// 要求元 (※要確認セル)
+	d = getCellValue(f, headerSheetName, deadlineHCell)
+	if dd, err := parseDateSafe(d); err != nil {
+		return err
+	} else {
+		h.Deadline = dd
+	}
+
 	// h.UserSection = getCellValue(f, headerSheetName, userSectionCell)
 	h.Note = getCellValue(f, headerSheetName, noteCell)
 	return nil
@@ -126,6 +131,34 @@ func parseFloatSafe(s string) (float64, error) {
 	return strconv.ParseFloat(s, 64)
 }
 
+// PNSearchが求める日付の文字列型を修正して返す
+// パースできないような文字列や
+// 空欄はPNSearch側でエラーにならないような処理となっているため
+// 影響がないと判断すれば空欄にして返すのが安全
+func parseDateSafe(s string) (string, error) {
+	switch s { // 棒線や空欄ならそのまま返す
+	case "", "‐", "-", "－", "―", "ー":
+		return "", nil
+	}
+
+	_, err := time.Parse(dateLayout, s)
+	if err == nil { // dataLayoutでパースできなければそのまま返す
+		return s, nil
+	}
+	// Excel標準の型でもパースできなければエラー
+	for _, l := range dateLayoutSub {
+		var t time.Time
+		t, err = time.Parse(l, s)
+		fmt.Println("[DEBUG] parse success", t)
+		// パースに成功したらPNSearch標準の文字列型で返す
+		if err == nil {
+			fmt.Println("[DEBUG] return date string", t.Format(dateLayout))
+			return t.Format(dateLayout), nil
+		}
+	}
+	return s, err
+}
+
 // processOrderRow : 1行分のデータをOrder構造体に変換
 func processOrderRow(
 	f *excelize.File,
@@ -151,7 +184,16 @@ func processOrderRow(
 	}
 
 	order.Unit = getCellValue(f, orderSheetName, colUnit+strconv.Itoa(r))
-	order.Deadline = getCellValue(f, orderSheetName, colDeadlineO+strconv.Itoa(r))
+	// 要望納期は dateLayout の型あるいは空欄に直す
+	d := getCellValue(f, orderSheetName, colDeadlineO+strconv.Itoa(r))
+	if dd, dateErr := parseDateSafe(d); err != nil {
+		err = fmt.Errorf(
+			"明細(%s) %d行目: 数量(%s)が正しい日付型%sではありません: %w",
+			orderSheetName, r, colDeadlineO, dateLayout, dateErr)
+		return
+	} else {
+		order.Deadline = dd
+	}
 	order.Kenku = getCellValue(f, orderSheetName, colKenku+strconv.Itoa(r))
 	order.Device = getCellValue(f, orderSheetName, colDevice+strconv.Itoa(r))
 	order.Serial = getCellValue(f, orderSheetName, colSerial+strconv.Itoa(r))
