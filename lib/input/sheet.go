@@ -15,14 +15,21 @@ import (
 )
 
 const (
-	dateLayout      = "2006/01/02"               // サーバーサイドPNSearchが求める日付の型
-	apiEndpointPath = "/api/v1/requests/confirm" // APIのエンドポイントパス
+	// サーバーサイドPNSearchが求める日付の型
+	dateLayout = "2006/01/02"
+	// APIのエンドポイントパス
+	apiEndpointPath = "/api/v1/requests/confirm"
 )
 
 var (
-	serverAddress  string                                         // APIサーバーのアドレス http://localhost:8080 (ビルド時に注入)
-	defaultTimeout = 30 * time.Second                             // API通信のデフォルトタイムアウト
-	dateLayoutSub  = []string{"2006/1/2", "1/2/2006", "01-02-06"} // PNSearch規格外の日付文字列
+	// APIサーバーのアドレス http://localhost:8080 (ビルド時に注入)
+	serverAddress string
+	// API通信のデフォルトタイムアウト
+	defaultTimeout = 30 * time.Second
+	// PNSearch規格外の日付文字列
+	dateLayoutSub = []string{"01-02-06"}
+	// 一つだけで十分そう？
+	// dateLayoutSub  = []string{"2006/1/2", "1/2/2006", "01-02-06"} // PNSearch規格外の日付文字列
 )
 
 type (
