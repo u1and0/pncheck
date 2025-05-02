@@ -94,6 +94,23 @@ $ GOOS=windows GOARCH=amd64 go build -ldflags="-X pncheck/lib/input.serverAddres
 
 ```
 
+#### icon
+
+go-winresというツールでアイコンを埋め込みます。
+
+```sh
+$ go install github.com/tc-hib/go-winres@latest
+$ go-winres init
+```
+
+winresディレクトリにサンプルファイルが配置されるので、 icon.png, icon16.pngの差し替えます。
+
+```sh
+$ go-winres make
+```
+
+.sysoファイルが作成されます。この状態で通常通り`go build .`(このプロジェクトの場合は`make exe`)をするとアイコン付きのexeが生成されます。
+
 
 ### Create Doc
 README.mdをpandocでHTML形式に変換します。
