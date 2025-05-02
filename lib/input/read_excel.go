@@ -80,10 +80,11 @@ func ReadExcelToSheet(filePath string) (sheet Sheet, err error) {
 	}
 
 	if len(sheet.Orders) == 0 {
-		fmt.Printf("警告: ファイル '%s' のシート '%s' から明細データを読み取れませんでした。\n", filePath, orderSheetName)
+		err = fmt.Errorf("警告: ファイル '%s' のシート '%s' から明細データを読み取れませんでした。\n", filePath, orderSheetName)
+		return
 	}
 
-	return sheet, nil
+	return
 }
 
 // validateFile : ファイルタイプを検証する
