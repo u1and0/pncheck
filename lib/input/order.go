@@ -26,12 +26,12 @@ func parseOrderType(filePath string) OrderType {
 	}
 	lastBlock := blocks[3]
 	// OrderTypeを決定
-	switch lastBlock {
-	case "S":
+	switch {
+	case strings.HasPrefix(lastBlock, "S"):
 		return 出庫
-	case "K":
+	case strings.HasPrefix(lastBlock, "K"):
 		return 購入
-	case "G":
+	case strings.HasPrefix(lastBlock, "G"):
 		return 外注
 	default:
 		return 不明
