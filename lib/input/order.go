@@ -5,12 +5,10 @@ import "strings"
 type OrderType string
 
 const (
-	// APIのエンドポイントパス (固定値とする)
-	apiEndpointPath           = "/api/v1/requests/confirm"
-	購入              OrderType = "購入"
-	外注              OrderType = "外注"
-	出庫              OrderType = "出庫"
-	不明              OrderType = "不明" // 不正な区分の場合
+	購入 OrderType = "購入"
+	外注 OrderType = "外注"
+	出庫 OrderType = "出庫"
+	不明 OrderType = "不明" // 不正な区分の場合
 )
 
 // parseOrderType ファイル名を引数に、"-"で区切った最後のブロックの値で発注区分を返す

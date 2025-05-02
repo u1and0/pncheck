@@ -10,13 +10,15 @@ import (
 	"time"
 )
 
-var (
-	// defaultTimeout : API通信のデフォルトタイムアウト
-	defaultTimeout = 30 * time.Second
+// APIのエンドポイントパス
+const apiEndpointPath = "/api/v1/requests/confirm"
 
-	// serverAddress : APIサーバーのアドレス
-	// "http://localhost:8080" (ビルド時に注入)
+var (
+	// APIサーバーのアドレス "http://localhost:8080" (ビルド時に注入)
 	serverAddress string
+
+	// API通信のデフォルトタイムアウト
+	defaultTimeout = 30 * time.Second
 )
 
 type (
