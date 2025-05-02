@@ -65,6 +65,6 @@ func handleResponse(filePath string, body []byte, code int) error {
 		return output.WriteErrorToJSON(jsonFilename, body)
 	}
 	// 成功したらコンソールに成功メッセージを書くだけ
-	fmt.Println("Success:", filePath)
+	fmt.Fprintln(os.Stderr, "Success:", filePath)
 	return nil
 }
