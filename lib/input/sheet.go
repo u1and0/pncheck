@@ -149,10 +149,10 @@ func parseDateSafe(s string) (string, error) {
 	for _, l := range dateLayoutSub {
 		var t time.Time
 		t, err = time.Parse(l, s)
-		fmt.Println("[DEBUG] parse success", t)
+		// fmt.Println("[DEBUG] parse success", t)
 		// パースに成功したらPNSearch標準の文字列型で返す
 		if err == nil {
-			fmt.Println("[DEBUG] return date string", t.Format(dateLayout))
+			// fmt.Println("[DEBUG] return date string", t.Format(dateLayout))
 			return t.Format(dateLayout), nil
 		}
 	}
