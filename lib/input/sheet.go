@@ -7,7 +7,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
+
+	"github.com/xuri/excelize/v2"
 )
 
 // APIのエンドポイントパス
@@ -67,6 +71,133 @@ type (
 	}
 )
 
+func New(fileName string) *Sheet {
+	return &Sheet{
+		Config: Config{true, true},
+		Header: Header{FileName: fileName},
+		Orders: make(Orders, 0),
+	}
+}
+
+// Header.read : 入力II からヘッダー(Header)の読み込み
+func (h *Header) read(f *excelize.File) error {
+	// 製番 (親番のみ読み取り)
+	parentID := getCellValue(f, headerSheetName, projectIDCell)
+	edaID := getCellValue(f, headerSheetName, projectEdaCell)
+	h.ProjectID = parentID + edaID
+	// 製番枝番は読み込まない (必要なら h にフィールド追加し、projectEdaCell から読み込む)
+	// h.ProjectEda = getCellValue(f, headerSheetName, projectEdaCell)
+
+	h.ProjectName = getCellValue(f, headerSheetName, projectNameCell)
+	h.RequestDate = getCellValue(f, headerSheetName, requestDateCell)
+
+	// 製番納期 (デフォルト値 "―" を考慮)
+	if d := getCellValue(f, headerSheetName, deadlineHCell); d == "―" {
+		h.Deadline = "" // デフォルト値なら空文字にする（または要件に合わせて "―" のまま）
+	} else {
+		h.Deadline = d
+	}
+	// 要求元 (※要確認セル)
+	// h.UserSection = getCellValue(f, headerSheetName, userSectionCell)
+	h.Note = getCellValue(f, headerSheetName, noteCell)
+	return nil
+}
+
+func isEmptyRow(pid, name, quantity string) bool {
+	return pid == "" && name == "" && quantity == ""
+}
+
+func parseIntSafe(s string) (int, error) {
+	// ,と.を取り除いて、スペースを削除する
+	s = strings.TrimSpace(strings.ReplaceAll(s, ",", ""))
+	s = strings.TrimSpace(strings.ReplaceAll(s, ".", ""))
+	if s == "" {
+		return 0, nil
+	}
+	return strconv.Atoi(s)
+}
+
+func parseFloatSafe(s string) (float64, error) {
+	// ,を取り除いて、スペースを削除する
+	s = strings.TrimSpace(strings.ReplaceAll(s, ",", ""))
+	if s == "" {
+		return 0.0, nil
+	}
+	return strconv.ParseFloat(s, 64)
+}
+
+// processOrderRow : 1行分のデータをOrder構造体に変換
+func processOrderRow(
+	f *excelize.File,
+	r int,
+	rowPid, rowName, rowQuantityStr string,
+) (order Order, err error) {
+	lvStr := getCellValue(f, orderSheetName, colLv+strconv.Itoa(r))
+	order.Lv, err = parseIntSafe(lvStr)
+	if err != nil {
+		err = fmt.Errorf("明細(%s) %d行目: Lv(%s)が数値ではありません: %w", orderSheetName, r, colLv, err)
+		return
+	}
+
+	order.Pid = rowPid
+	order.Name = rowName
+	order.Type = getCellValue(f, orderSheetName, colType+strconv.Itoa(r))
+
+	// 数量をパース
+	order.Quantity, err = parseFloatSafe(rowQuantityStr)
+	if err != nil && rowQuantityStr != "" {
+		err = fmt.Errorf("明細(%s) %d行目: 数量(%s)が数値ではありません: %w", orderSheetName, r, colQuantity, err)
+		return
+	}
+
+	order.Unit = getCellValue(f, orderSheetName, colUnit+strconv.Itoa(r))
+	order.Deadline = getCellValue(f, orderSheetName, colDeadlineO+strconv.Itoa(r))
+	order.Kenku = getCellValue(f, orderSheetName, colKenku+strconv.Itoa(r))
+	order.Device = getCellValue(f, orderSheetName, colDevice+strconv.Itoa(r))
+	order.Serial = getCellValue(f, orderSheetName, colSerial+strconv.Itoa(r))
+	order.Maker = getCellValue(f, orderSheetName, colMaker+strconv.Itoa(r))
+	order.Vendor = getCellValue(f, orderSheetName, colVendor+strconv.Itoa(r))
+
+	// 予定単価をパース
+	unitPriceStr := getCellValue(f, orderSheetName, colUnitPrice+strconv.Itoa(r))
+	order.UnitPrice, err = parseFloatSafe(unitPriceStr)
+	if err != nil {
+		err = fmt.Errorf("明細(%s) %d行目: 予定単価(%s)が数値ではありません: %w", orderSheetName, r, colUnitPrice, err)
+		return
+	}
+	return
+}
+
+// read : 入力Ⅰから明細行 (Orders) の読み込み
+func (o *Orders) read(f *excelize.File) error {
+	emptyRowCount := 0
+	for r := ordersStartRow; ; r++ {
+		// 1行分のデータを読み込む (主要な列が空かチェック - 品番, 品名, 数量)
+		rowPid := getCellValue(f, orderSheetName, colPid+strconv.Itoa(r))
+		rowName := getCellValue(f, orderSheetName, colName+strconv.Itoa(r))
+		rowQuantityStr := getCellValue(f, orderSheetName, colQuantity+strconv.Itoa(r))
+
+		// 品番、品名、数量がすべて空なら空行とみなす
+		if isEmptyRow(rowPid, rowName, rowQuantityStr) {
+			emptyRowCount++
+			if emptyRowCount >= maxEmptyRowsCheck {
+				break // 連続空行が閾値を超えたら終了
+			}
+			continue // 空行なら次の行へ
+		}
+		emptyRowCount = 0 // データがあればカウンタリセット
+
+		order, err := processOrderRow(f, r, rowPid, rowName, rowQuantityStr)
+		if err != nil {
+			return err
+		}
+
+		// 読み取ったOrderをスライスに追加
+		*o = append(*o, order)
+	}
+	return nil
+}
+
 // Sheet.Post() でサーバーへポスト
 // 戻り値はbody, code, error
 // code のデフォルト値は500
@@ -118,4 +249,13 @@ $ go build -ldflags="-X pncheck/lib/input.serverAddress=http://localhost:8080"`,
 		return
 	}
 	return
+}
+
+// getCellValue は指定されたセルから値を取得します。エラー時は空文字を返します。
+func getCellValue(f *excelize.File, sheetName, axis string) string {
+	val, err := f.GetCellValue(sheetName, axis)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(val)
 }

@@ -7,7 +7,7 @@ import (
 	"pncheck/lib/output"
 )
 
-const VERSION = "v1.0.0"
+const VERSION = "v0.1.0"
 
 func main() {
 	// コマンドライン引数を解析
