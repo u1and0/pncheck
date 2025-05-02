@@ -22,7 +22,7 @@ const (
 var (
 	serverAddress  string                                         // APIサーバーのアドレス http://localhost:8080 (ビルド時に注入)
 	defaultTimeout = 30 * time.Second                             // API通信のデフォルトタイムアウト
-	dateLayoutSub  = []string{"01-02-06", "2006/1/2", "1/2/2006"} // PNSearch規格外の日付文字列
+	dateLayoutSub  = []string{"2006/1/2", "1/2/2006", "01-02-06"} // PNSearch規格外の日付文字列
 )
 
 type (
@@ -149,10 +149,10 @@ func parseDateSafe(s string) (string, error) {
 	for _, l := range dateLayoutSub {
 		var t time.Time
 		t, err = time.Parse(l, s)
-		// fmt.Println("[DEBUG] parse success", t)
+		// fmt.Fprintln(os.Stderr, "[DEBUG]", "parse success", t)
 		// パースに成功したらPNSearch標準の文字列型で返す
 		if err == nil {
-			// fmt.Println("[DEBUG] return date string", t.Format(dateLayout))
+			// fmt.Fprintln(os.Stderr, "[DEBUG]", "return date string", t.Format(dateLayout))
 			return t.Format(dateLayout), nil
 		}
 	}
