@@ -1,33 +1,33 @@
 指定されたExcelファイルをPNSearch APIでチェックします。
 
-## Usage
+## 💡 Usage
 
-### from command line
+### 💻 from command line
 
 ```sh
 $ pncheck [オプション] <Excelファイルパス1> [Excelファイルパス2] ...
 ```
 
-### Options:
+### ⚙️ Options:
 * -h, -help
     * ヘルプメッセージを表示します
 * -v, -version
     * バージョン情報を表示します
 
-### Example:
+### 📝 Example:
 
 ```sh
 $ pncheck request1.xlsx request2.xlsx
 ```
 
-### エクスプローラーから使う
+### 📂 エクスプローラーから使う
 
 ![エクセルファイルをまとめてexe上にドラッグしてください。](doc/screen_shot_usage.png)
 
 ![エラーがあった場合にのみ、JSONファイルが出力されます。エラーの内容は生成されたJSONファイルを確認してください。](doc/screen_shot_result.png)
 
 
-### Error JSON
+### ❗ Error JSON
 エラーが書き込まれたJSONファイルの内容の一部
 
 - msg: エラーの概要
@@ -68,13 +68,21 @@ $ pncheck request1.xlsx request2.xlsx
 ```
 
 
+### 🚨 Fatal report
+通信エラーなどの引数のExcelに依らない致命的なエラーは`pncheck_fatal_report.log` にエラーの内容が追記されます。
+以下、ログファイルの内容の抜粋です。
 
-## Build
+```log
+2025/05/02 14:08:53.949: PNCheck Error: API通信エラー: APIへのリクエスト送信に失敗しました (http://localhost:8080/api/v1/requests/confirm): Post "http://localhost:8080/api/v1/requests/confirm": dial tcp [::1]:8080: connect: connection refused
+```
+
+
+## 🏗️ Build
 
 `make` を実行してください。
 `make`で実行されるコマンドはMakefileのコメントと以下の解説を確認してください。
 
-### for Linux
+### 🐧 for Linux
 
 `go build`を実行します。 ビルド時にPNSearchサーバーのURLを決定します。
 
@@ -84,7 +92,7 @@ $ go build -ldflags="-X pncheck/lib/input.serverAddress=${SERVER_ADDRESS}"
 ```
 
 
-### for Windows
+### 🪟 for Windows
 
 環境変数 GOOSと GOARCHを設定してからビルドします。
 あるいは以下のように、on the flyで環境変数を設定してからビルドします。
@@ -94,7 +102,7 @@ $ GOOS=windows GOARCH=amd64 go build -ldflags="-X pncheck/lib/input.serverAddres
 
 ```
 
-#### icon
+#### 🎨 icon
 
 go-winresというツールでアイコンを埋め込みます。
 
@@ -112,7 +120,7 @@ $ go-winres make
 .sysoファイルが作成されます。この状態で通常通り`go build .`(このプロジェクトの場合は`make exe`)をするとアイコン付きのexeが生成されます。
 
 
-### Create Doc
+### 📄 Create Doc
 README.mdをpandocでHTML形式に変換します。
 
 ```sh
