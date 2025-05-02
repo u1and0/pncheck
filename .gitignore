@@ -1,0 +1,4 @@
+/pncheck*
+# docとREADME.htmlはlocalでしか管理しない
+/doc/
+/README.html
