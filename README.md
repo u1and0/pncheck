@@ -82,6 +82,13 @@ $ pncheck request1.xlsx request2.xlsx
 `make` を実行してください。
 `make`で実行されるコマンドはMakefileのコメントと以下の解説を確認してください。
 
+PNSearchのAPIを利用してる都合上、コマンドにサーバーアドレスを変数として注入してビルドします。
+ビルドする際は環境に合った`SERVER_ADDRESS`変数を変更してビルドしてください。
+
+```sh
+$ make SERVER_ADDRESS='http://192.168.1.2:8080'
+```
+
 ### 🐧 for Linux
 
 `go build`を実行します。 ビルド時にPNSearchサーバーのURLを決定します。
