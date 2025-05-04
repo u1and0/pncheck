@@ -11,7 +11,7 @@ import (
 // これより大きいHTTPステータスコードは処理を分岐する
 // 逆に、successCode未満のステータスは成功
 const (
-	successCode = 400
+	successCode = 300
 	errorCode   = 500
 )
 

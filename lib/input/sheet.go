@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -78,10 +79,16 @@ type (
 	}
 )
 
-func New(fileName string) *Sheet {
+func New(f string) *Sheet {
 	return &Sheet{
 		Config: Config{true, true},
-		Header: Header{FileName: fileName},
+		Header: Header{
+			// ディレクトリを除いたファイル名のみ+surfix _pncheck
+			// 30エラーを出さないためのダミーファイル名
+			FileName: "pncheck_" + filepath.Base(f),
+			// 発注区分をファイル名から分類
+			OrderType: parseOrderType(f),
+		},
 		Orders: make(Orders, 0),
 	}
 }

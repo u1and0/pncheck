@@ -52,7 +52,7 @@ func TestParseArguments(t *testing.T) {
 			// flag.ContinueOnError を使うか、エラーをハンドリングする
 			flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError) // または flag.PanicOnError
 
-			gotPaths, err := ParseArguments() // ここで flag.Parse() が呼ばれる
+			gotPaths, err := ParseArguments("v0.1.0") // ここで flag.Parse() が呼ばれる
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseArguments() error = %v, wantErr %v", err, tt.wantErr)
