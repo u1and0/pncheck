@@ -41,7 +41,6 @@ func TestHeaderRead(t *testing.T) {
 	testFile := createTestExcelFile(t, testDir, "success-001-read-K.xlsx", setValidLayout)
 
 	expected := Sheet{
-		Config: Config{Validatable: true, Sortable: true},
 		Header: Header{
 			OrderType:   購入,
 			ProjectID:   "1234501",                         // D1 + F1
@@ -63,5 +62,45 @@ func TestHeaderRead(t *testing.T) {
 	actual.Header.read(f)
 	if expected.Header != actual.Header {
 		t.Errorf("got %#v, want: %#v", actual.Header, &expected.Header)
+	}
+}
+
+func TestOrderRead(t *testing.T) {
+	testDir := "testdata_sheet_order_read"
+	testFile := createTestExcelFile(t, testDir, "success-001-read-K.xlsx", setValidLayout)
+
+	expected := Sheet{
+		Orders: Orders{
+			{ // Row 2
+				Lv: 1, Pid: "PN-001", Name: "部品A", Type: "TypeX",
+				Quantity: 10.5, Unit: "個", Deadline: "2023/11/15", Kenku: "受入",
+				Device: "装置1", Serial: "S001", Maker: "MakerX", Vendor: "VendorY", UnitPrice: 100.50,
+			},
+			{ // Row 3
+				Lv: 2, Pid: "PN-002", Name: "部品B", Type: "",
+				Quantity: 5, Unit: "Set", Deadline: "", Kenku: "",
+				Device: "", Serial: "", Maker: "", Vendor: "", UnitPrice: 2500,
+			},
+			{ // Row 5
+				Lv: 0, Pid: "PN-003", Name: "部品C", Type: "",
+				Quantity: 1, Unit: "", Deadline: "", Kenku: "",
+				Device: "", Serial: "", Maker: "", Vendor: "", UnitPrice: 0,
+			},
+		},
+	}
+
+	f, err := excelize.OpenFile(testFile)
+	if err != nil {
+		t.Errorf("テスト用Excelファイルが開けません\n")
+	}
+	defer f.Close()
+
+	actual := *New(testFile)
+	actual.Orders.read(f)
+	if len(actual.Orders) == 0 {
+		t.Errorf("Ordersの値がありません len == 0\n")
+	}
+	if expected.Orders[0] != actual.Orders[0] {
+		t.Errorf("got %#v, want: %#v", actual.Orders[0], &expected.Orders[0])
 	}
 }
