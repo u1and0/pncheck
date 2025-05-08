@@ -1,6 +1,9 @@
 package input
 
-import "strings"
+import (
+	"strings"
+	"time"
+)
 
 type OrderType string
 
@@ -36,4 +39,11 @@ func parseOrderType(filePath string) OrderType {
 	default:
 		return 不明
 	}
+}
+
+func parseFilenameDate(filePath string) time.Time {
+	ss := strings.Split(filePath, "-")
+	t, _ := time.Parse(dateLayout, ss[0])
+	return t
+
 }

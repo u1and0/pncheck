@@ -68,10 +68,12 @@ func ReadExcelToSheet(filePath string) (sheet Sheet, err error) {
 	sheet = *New(filePath)
 	// 発注区分以外のヘッダー情報をExcelファイルから読み込み
 	if err = sheet.Header.read(f); err != nil {
+		err = fmt.Errorf("入力II読み込みエラー: '%s': %w\n", filePath, err)
 		return
 	}
 	// オーダー情報をExcelファイルから読み込み
 	if err = sheet.Orders.read(f); err != nil {
+		err = fmt.Errorf("入力I読み込みエラー: '%s': %w\n", filePath, err)
 		return
 	}
 
