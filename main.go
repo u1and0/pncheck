@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	VERSION  = "v0.1.1"
+	VERSION  = "v0.1.0r"
 	FATALLOG = "pncheck_fatal_report.log"
 )
 

@@ -34,8 +34,8 @@ func ProcessExcelFile(filePath string) error {
 
 // handleResponse processes API responses based on status code
 // codeに対する処理を分岐
-// 200-300台ステータスコードは何もしない
-// 400番台ステータスコードはファイル名.jsonにエラーの内容を書き込む
+// 200台ステータスコードは何もしない
+// 300,400番台ステータスコードはファイル名.jsonにエラーの内容を書き込む
 // 500番台ステータスコードはPOSTに失敗しているので、faital_report.log にエラーを書き込み
 func handleResponse(filePath string, body []byte, code int) error {
 	// APIレスポンス解析とエラー出力 (ボディがあれば実行)
@@ -47,7 +47,7 @@ func handleResponse(filePath string, body []byte, code int) error {
 		return fmt.Errorf("APIレスポンス解析エラー (ステータス: %d): %s", code, body)
 	}
 
-	// 400番台はPNResponseをファイル名+.jsonに書き込む
+	// 300,400番台はPNResponseをファイル名+.jsonに書き込む
 	if code >= successCode {
 		// TODO
 		// 警告の場合はJSON?コンソールに成功メッセージを書くだけ？
