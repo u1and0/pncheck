@@ -320,3 +320,82 @@ func TestFilenameWithoutExtError(t *testing.T) {
 	}()
 	FilenameWithoutExt(filePath)
 }
+
+func TestActivateOrderSheet(t *testing.T) {
+	// Initialize an Excel file
+	testDir := "testdata_activate"
+	testFileName := "testfile.xlsx"
+	testFile := createTestExcelFile(t, testDir, testFileName, setValidLayout)
+
+	tests := []struct {
+		name           string
+		filePath       string
+		sheetName      string
+		wantErr        bool
+		wantErrMsg     string
+		activeSheetIdx int
+	}{
+		{
+			name:           "success",
+			filePath:       testFile,
+			wantErr:        true,
+			wantErrMsg:     "新しく保存しました。",
+			activeSheetIdx: 0, // idx==0は入力II
+		},
+		{
+			name:           "already active",
+			filePath:       testFile,
+			wantErr:        false,
+			activeSheetIdx: 1,
+		},
+		{
+			name:       "file not found",
+			filePath:   "non-existent-file.xlsx",
+			wantErr:    true,
+			wantErrMsg: "ファイルを開けません",
+		},
+		{
+			name:       "order sheet not found",
+			filePath:   testFileName,
+			sheetName:  "不正なシート名",
+			wantErr:    true,
+			wantErrMsg: "入力Iシートが見つかりません",
+		},
+	}
+
+	for _, tt := range tests {
+		// テストのためにあえて入力I以外のシートをアクティブにする
+		t.Run(tt.name, func(t *testing.T) {
+			f, _ := excelize.OpenFile(tt.filePath)
+			if tt.activeSheetIdx > 0 {
+				f.SetActiveSheet(tt.activeSheetIdx)
+				if err := f.SaveAs(tt.filePath); err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
+
+		// テストのためにあえて入力I以外のシート名にする
+		t.Run(tt.name, func(t *testing.T) {
+			f, _ := excelize.OpenFile(tt.filePath)
+			if tt.sheetName != "" {
+				f.SetSheetName(orderSheetName, tt.sheetName)
+				if err := f.SaveAs(tt.filePath); err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
+
+		t.Run(tt.name, func(t *testing.T) {
+			err := ActivateOrderSheet(tt.filePath)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ActivateOrderSheet() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.wantErr && !strings.Contains(fmt.Sprintf("%v", err), tt.wantErrMsg) {
+				t.Errorf("ActivateOrderSheet() error message = %v, wantErrMsg %v", err, tt.wantErrMsg)
+			}
+		})
+	}
+}

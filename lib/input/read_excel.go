@@ -74,3 +74,53 @@ func FilenameWithoutExt(filePath string) string {
 	ext := filepath.Ext(filePath)
 	return strings.TrimSuffix(base, ext)
 }
+
+// ActivateOrderSheet : 入力I以外がアクティブシートだったら
+// 入力Iをアクティブにして保存して終了
+func ActivateOrderSheet(filePath string) error {
+	f, err := excelize.OpenFile(filePath)
+	if err != nil {
+		return fmt.Errorf("ファイルを開けません '%s': %w\n", filePath, err)
+	}
+	defer f.Close()
+
+	activeSheetIndex := f.GetActiveSheetIndex()
+	idx, err := f.GetSheetIndex(orderSheetName)
+	if err != nil || idx == -1 {
+		return fmt.Errorf("入力Iシートが見つかりません: %w\n", err)
+	}
+
+	// 現在のアクティブシートが入力Iだったら何もせずに終了
+	if idx == activeSheetIndex {
+		return nil
+	}
+
+	// 入力I以外がアクティブシートだったら
+	// 入力Iをアクティブにして保存して終了
+	f.SetActiveSheet(idx)
+
+	newFilePath := modifyFilePath(filePath)
+	if err := f.SaveAs(newFilePath); err != nil {
+		return fmt.Errorf("ファイル書き込みエラー: %w\n", err)
+	}
+	return fmt.Errorf("入力Iをアクティブにして%sへ新しく保存しました。",
+		newFilePath)
+}
+
+// modifyFilePath : ファイル名の接頭にpncheck_をつける
+// filePathにはディレクトリが含まれており、
+// ディレクトリとファイル名を分離して、
+// ファイル名のprefixに"pncheck_"をつけて新しいファイルパスとする
+func modifyFilePath(filePath string) string {
+	var (
+		// ディレクトリとファイル名を分離
+		dir      = filepath.Dir(filePath)
+		fileName = filepath.Base(filePath)
+	)
+	const prefix = "pncheck_"
+	// ファイル名のprefixに"pncheck_"をつける
+	newFileName := prefix + fileName
+
+	// 新しいファイルパスを生成
+	return filepath.Join(dir, newFileName)
+}

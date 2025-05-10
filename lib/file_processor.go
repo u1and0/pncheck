@@ -24,6 +24,12 @@ func ProcessExcelFile(filePath string) error {
 		return fmt.Errorf("Excel読み込みエラー: %w", err)
 	}
 
+	// 入力Iをアクティベートする
+	err = input.ActivateOrderSheet(filePath)
+	if err != nil {
+		return fmt.Errorf("Excel読み込みエラー: %w", err)
+	}
+
 	// API呼び出し
 	body, code, err := sheet.Post()
 	if err != nil {
