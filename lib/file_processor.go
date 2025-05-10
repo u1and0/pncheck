@@ -1,16 +1,25 @@
 package lib
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"pncheck/lib/input"
 	"pncheck/lib/output"
 )
 
+// ErrorRecord : pncheck固有のエラーをJSONファイルに書き込むための構造体
+type ErrorRecord struct {
+	Filename string `json:"ファイル名"`
+	Error    string `json:"エラー"`
+}
+
 // これより大きいHTTPステータスコードは処理を分岐する
 // 逆に、successCode未満のステータスは成功
 const (
+	FATALLOG    = "pncheck_fatal_report.log"
 	successCode = 300
 	errorCode   = 500
 )
@@ -49,11 +58,6 @@ func handleResponse(filePath string, body []byte, code int) error {
 
 	// 300,400番台はPNResponseをファイル名+.jsonに書き込む
 	if code >= successCode {
-		// TODO
-		// 警告の場合はJSON?コンソールに成功メッセージを書くだけ？
-		// case code < 400:
-		// 	fmt.Println("Warning:", filePath)
-
 		// 標準エラーにResponse とステータスコード、
 		// 標準出力にレスポンス詳細を出力することで
 		// `pncheck XYZ.xlsx | jq`
@@ -67,4 +71,24 @@ func handleResponse(filePath string, body []byte, code int) error {
 	// 成功したらコンソールに成功メッセージを書くだけ
 	fmt.Fprintln(os.Stderr, "Success:", filePath)
 	return nil
+}
+
+func WriteError(filePath string, err error) error {
+	// エラーがあったら標準エラーに出力した後ファイル名ごとのJSONに書き込む
+	msg := fmt.Sprintf("ファイル名:%s, pncheck %s\n", filePath, err)
+	fmt.Fprintln(os.Stderr, msg)
+
+	// JSONファイルにエラーを書き込み
+	errRerocd := ErrorRecord{filepath.Base(filePath), err.Error()}
+	errJSON, err := json.Marshal(errRerocd)
+	if err != nil {
+		err = fmt.Errorf("JSONパースエラー: %w", err)
+		fmt.Fprintln(os.Stderr, err)
+		err = output.LogFatalError(FATALLOG, err.Error())
+		return err
+	}
+	jsonFilename := input.FilenameWithoutExt(filePath) + ".json"
+	fmt.Fprintln(os.Stderr, err)
+	err = output.WriteErrorToJSON(jsonFilename, errJSON)
+	return err
 }
