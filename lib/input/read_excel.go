@@ -1,10 +1,12 @@
 package input
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/xuri/excelize/v2"
 )
@@ -36,6 +38,28 @@ func ReadExcelToSheet(filePath string) (sheet Sheet, err error) {
 		err = fmt.Errorf("入力II読み込みエラー: '%s': %w\n", filePath, err)
 		return
 	}
+
+	// 入力IIの要求年月日とファイル名の要求年月日に矛盾を確認
+	s1, err := parseDateSafe(sheet.Header.RequestDate)
+	if err != nil {
+		err = fmt.Errorf("時間型パースエラー: %s, %w", sheet.Header.RequestDate, err)
+		return
+	}
+	d1, err := time.Parse(dateLayout, s1)
+	if err != nil {
+		err = fmt.Errorf("時間型パースエラー: %s, %w", sheet.Header.RequestDate, err)
+		return
+	}
+	d2, err := parseFilenameDate(filePath)
+	if err != nil {
+		err = fmt.Errorf("時間型パースエラー: %s, %w", filePath, err)
+		return
+	}
+	if d1 != d2 {
+		err = errors.New("入力IIの要求年月日とファイル名の要求年月日に矛盾があります")
+		return
+	}
+
 	// オーダー情報をExcelファイルから読み込み
 	if err = sheet.Orders.read(f); err != nil {
 		err = fmt.Errorf("入力I読み込みエラー: '%s': %w\n", filePath, err)

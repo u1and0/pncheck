@@ -41,9 +41,8 @@ func parseOrderType(filePath string) OrderType {
 	}
 }
 
-func parseFilenameDate(filePath string) time.Time {
+func parseFilenameDate(filePath string) (time.Time, error) {
+	const layout = "20060102"
 	ss := strings.Split(filePath, "-")
-	t, _ := time.Parse(dateLayout, ss[0])
-	return t
-
+	return time.Parse(layout, ss[0])
 }

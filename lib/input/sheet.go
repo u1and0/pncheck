@@ -62,7 +62,7 @@ var (
 	// API通信のデフォルトタイムアウト
 	defaultTimeout = 30 * time.Second
 	// PNSearch規格外の日付文字列
-	dateLayoutSub = []string{"01-02-06"}
+	dateLayoutSub = "01-02-06"
 	// 一つだけで十分そう？
 	// dateLayoutSub  = []string{"2006/1/2", "1/2/2006", "01-02-06"} // PNSearch規格外の日付文字列
 )
@@ -194,15 +194,12 @@ func parseDateSafe(s string) (string, error) {
 		return s, nil
 	}
 	// Excel標準の型でもパースできなければエラー
-	for _, l := range dateLayoutSub {
-		var t time.Time
-		t, err = time.Parse(l, s)
-		// fmt.Fprintln(os.Stderr, "[DEBUG]", "parse success", t)
-		// パースに成功したらPNSearch標準の文字列型で返す
-		if err == nil {
-			// fmt.Fprintln(os.Stderr, "[DEBUG]", "return date string", t.Format(dateLayout))
-			return t.Format(dateLayout), nil
-		}
+	t, err := time.Parse(dateLayoutSub, s)
+	// fmt.Fprintln(os.Stderr, "[DEBUG]", "parse success", t)
+	// パースに成功したらPNSearch標準の文字列型で返す
+	if err == nil {
+		// fmt.Fprintln(os.Stderr, "[DEBUG]", "return date string", t.Format(dateLayout))
+		return t.Format(dateLayout), nil
 	}
 	return s, err
 }
