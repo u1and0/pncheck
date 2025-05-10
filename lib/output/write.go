@@ -1,10 +1,14 @@
 package output
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
+
+	"pncheck/lib/input"
 )
 
 // WriteErrorToJSON writes error response to a JSON file
@@ -43,4 +47,26 @@ func LogFatalError(f string, msg string) error {
 	msg = fmt.Sprintf("%s: %s\n", now, msg)
 	_, err = file.WriteString(msg)
 	return err
+}
+
+// ErrorRecord : pncheck固有のエラーをJSONファイルに書き込むための構造体
+type ErrorRecord struct {
+	Filename string `json:"ファイル名"`
+	Error    string `json:"エラー"`
+}
+
+// WriteError : エラーがあったら標準エラーに出力した後ファイル名ごとのJSONに書き込む
+func WriteError(filePath string, err error) error {
+	// エラーをJSONとしてパース
+	errRecord := ErrorRecord{filepath.Base(filePath), err.Error()}
+	errJSON, err := json.MarshalIndent(errRecord, "", "  ")
+	if err != nil {
+		return fmt.Errorf("JSONパースエラー: %w", err)
+	}
+	// JSON型エラーの表示
+	fmt.Fprintln(os.Stderr, string(errJSON))
+
+	// JSONファイルへ書き込み
+	jsonFilename := input.FilenameWithoutExt(filePath) + ".json"
+	return WriteErrorToJSON(jsonFilename, errJSON)
 }
