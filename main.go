@@ -29,7 +29,8 @@ func main() {
 
 		// JSON型ではないエラーの表示
 		// fmt.Fprintf(os.Stderr, "ファイル名:%s, pncheck %s\n", filePath, err)
-		err = output.WriteError(filePath, err)
+		err = output.WriteFatal(filePath, err)
+		// WriteFatalでもエラーが発生したらFATALLOGに書き込む
 		if err != nil {
 			log.Println(err)
 			output.LogFatalError(FATALLOG, err.Error())

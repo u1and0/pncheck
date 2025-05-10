@@ -55,8 +55,13 @@ type ErrorRecord struct {
 	Error    string `json:"エラー"`
 }
 
-// WriteError : エラーがあったら標準エラーに出力した後ファイル名ごとのJSONに書き込む
-func WriteError(filePath string, err error) error {
+// WriteFatal : pncheck固有のエラーがあったら 標準エラーに出力した後、
+// ファイル名ごとのJSONに書き込む
+//
+// @throws JSONパースエラー
+// @throws エラーファイル '%s' の作成に失敗しました
+// @throws エラーファイル '%s' へのJSONデータ書き込みに失敗しました
+func WriteFatal(filePath string, err error) error {
 	// エラーをJSONとしてパース
 	errRecord := ErrorRecord{filepath.Base(filePath), err.Error()}
 	errJSON, err := json.MarshalIndent(errRecord, "", "  ")
