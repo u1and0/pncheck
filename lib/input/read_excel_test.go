@@ -399,3 +399,46 @@ func TestActivateOrderSheet(t *testing.T) {
 		})
 	}
 }
+
+func TestModifyFilePath(t *testing.T) {
+	tests := []struct {
+		name     string
+		filePath string
+		want     string
+	}{
+		{
+			name:     "basic functionality",
+			filePath: "/path/to/file.txt",
+			want:     "/path/to/pncheck_file.txt",
+		},
+		{
+			name:     "filename with extension",
+			filePath: "/path/to/file.with.multiple.extensions.txt",
+			want:     "/path/to/pncheck_file.with.multiple.extensions.txt",
+		},
+		{
+			name:     "filename without extension",
+			filePath: "/path/to/file",
+			want:     "/path/to/pncheck_file",
+		},
+		{
+			name:     "empty string",
+			filePath: "",
+			want:     "pncheck_.",
+		},
+		{
+			name:     "just a filename",
+			filePath: "file.txt",
+			want:     "pncheck_file.txt",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := modifyFilePath(tt.filePath)
+			if got != tt.want {
+				t.Errorf("modifyFilePath() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
