@@ -2,6 +2,8 @@ package output
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"log"
 	"os"
 	"path/filepath"
@@ -168,4 +170,97 @@ func TestLogFatalError(t *testing.T) {
 		t.Log("Skipping explicit test for write failure in LogFatalError due to complexity")
 	})
 
+}
+
+func TestWriteFatal(t *testing.T) {
+	// Test case 1: Successful write
+	t.Run("successful write", func(t *testing.T) {
+		tmpDir, err := os.MkdirTemp("", "test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(tmpDir)
+
+		filePath := filepath.Join(tmpDir, "test.txt")
+		err = os.WriteFile(filePath, []byte{}, 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		testErr := errors.New("test error")
+		err = WriteFatal(filePath, testErr)
+		if err != nil {
+			t.Errorf("WriteFatal returned error: %v", err)
+		}
+
+		jsonFilePath := filepath.Join(tmpDir, "test.json")
+		if _, err := os.Stat(jsonFilePath); os.IsNotExist(err) {
+			t.Errorf("JSON file %s not found", jsonFilePath)
+		}
+
+		jsonData, err := os.ReadFile(jsonFilePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var errRecord ErrorRecord
+		err = json.Unmarshal(jsonData, &errRecord)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if errRecord.Filename != "test.txt" || errRecord.Error != "test error" {
+			t.Errorf("Unexpected JSON content: %+v", errRecord)
+		}
+	})
+
+	// Test case 2: JSON marshaling error
+	t.Run("JSON marshaling error", func(t *testing.T) {
+		// This test case is tricky because we're testing an unexported function indirectly.
+		// The `json.MarshalIndent` function will fail if the input is not marshalable.
+		// We can't directly test this with `ErrorRecord` because it's a simple struct that can be marshaled.
+		// However, we can test the error handling by passing a non-marshalable error (e.g., a nil error).
+		err := WriteFatal("test.txt", nil)
+		if err == nil {
+			t.Errorf("WriteFatal did not return error for nil error input")
+		}
+	})
+
+	// Test case 3: Error writing to JSON file
+	t.Run("error writing to JSON file", func(t *testing.T) {
+		// Create a directory where we expect to write the JSON file, so the write fails.
+		tmpDir, err := os.MkdirTemp("", "test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer os.RemoveAll(tmpDir)
+
+		filePath := filepath.Join(tmpDir, "test.txt")
+		err = os.WriteFile(filePath, []byte{}, 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Create a directory with the same name as the expected JSON file.
+		jsonFilePath := filepath.Join(tmpDir, "test.json")
+		err = os.Mkdir(jsonFilePath, 0755)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		testErr := errors.New("test error")
+		err = WriteFatal(filePath, testErr)
+		if err == nil {
+			t.Errorf("WriteFatal did not return error when writing to JSON file failed")
+		}
+	})
+
+	// Test case 4: Invalid file path
+	t.Run("invalid file path", func(t *testing.T) {
+		// Passing an empty file path.
+		err := WriteFatal("", errors.New("test error"))
+		if err == nil {
+			t.Errorf("WriteFatal did not return error for empty file path")
+		}
+	})
 }

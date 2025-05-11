@@ -6,9 +6,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
-
-	"pncheck/lib/input"
 )
 
 // WriteErrorToJSON writes error response to a JSON file
@@ -69,9 +68,24 @@ func WriteFatal(filePath string, err error) error {
 		return fmt.Errorf("JSONパースエラー: %w", err)
 	}
 	// JSON型エラーの表示
-	fmt.Fprintln(os.Stderr, string(errJSON))
+	fmt.Println(string(errJSON))
 
 	// JSONファイルへ書き込み
-	jsonFilename := input.FilenameWithoutExt(filePath) + ".json"
+	jsonFilename := ModifyFileExt(filePath, ".json")
 	return WriteErrorToJSON(jsonFilename, errJSON)
+}
+
+// ModifyFileExt
+// filePathにはディレクトリが含まれており、
+// ディレクトリとファイル名を分離して、
+// ファイルの拡張子をセットし直す
+func ModifyFileExt(filePath, newExt string) string {
+	var (
+		// ディレクトリとファイル名と拡張子を分離
+		dir      = filepath.Dir(filePath)
+		fileName = filepath.Base(filePath)
+		ext      = filepath.Ext(filePath)
+		fileBase = strings.TrimSuffix(fileName, ext)
+	)
+	return filepath.Join(dir, fileBase+newExt)
 }

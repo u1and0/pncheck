@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/xuri/excelize/v2"
+
+	"pncheck/lib/output"
 )
 
 // ReadExcelToSheet は指定されたExcelファイルを読み込み、Sheet構造体に変換します。
@@ -87,18 +87,6 @@ func validateFile(f string) error {
 	return nil
 }
 
-// FilenameWithoutExt : ファイルパスを渡して
-// 拡張子なしのファイル名を返す
-// ディレクトリの場合、Base名をそのまま返す
-func FilenameWithoutExt(filePath string) string {
-	if filePath == "" {
-		return ""
-	}
-	base := filepath.Base(filePath)
-	ext := filepath.Ext(filePath)
-	return strings.TrimSuffix(base, ext)
-}
-
 // ActivateOrderSheet : 入力I以外がアクティブシートだったら
 // 入力Iをアクティブにして保存して終了
 func ActivateOrderSheet(filePath string) error {
@@ -123,28 +111,10 @@ func ActivateOrderSheet(filePath string) error {
 	// 入力Iをアクティブにして保存して終了
 	f.SetActiveSheet(idx)
 
-	newFilePath := modifyFilePath(filePath)
+	newFilePath := output.ModifyFileExt(filePath, ".pncheck.xlsx")
 	if err := f.SaveAs(newFilePath); err != nil {
 		return fmt.Errorf("ファイル書き込みエラー: %w\n", err)
 	}
 	return fmt.Errorf("入力Iをアクティブにして%sへ新しく保存しました。",
 		newFilePath)
-}
-
-// modifyFilePath : ファイル名の接頭にpncheck_をつける
-// filePathにはディレクトリが含まれており、
-// ディレクトリとファイル名を分離して、
-// ファイル名のprefixに"pncheck_"をつけて新しいファイルパスとする
-func modifyFilePath(filePath string) string {
-	var (
-		// ディレクトリとファイル名を分離
-		dir      = filepath.Dir(filePath)
-		fileName = filepath.Base(filePath)
-	)
-	const prefix = "pncheck_"
-	// ファイル名のprefixに"pncheck_"をつける
-	newFileName := prefix + fileName
-
-	// 新しいファイルパスを生成
-	return filepath.Join(dir, newFileName)
 }

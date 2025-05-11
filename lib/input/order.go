@@ -21,9 +21,9 @@ const (
 // G: 外注 OrderType = "外注"
 // それ以外: 不明 OrderType = "不明" // 不正な区分の場合
 func parseOrderType(filePath string) OrderType {
-	f := FilenameWithoutExt(filePath)
+	base := filepath.Base(filePath)
 	// "-"で区切って4ブロック目の最初の文字
-	blocks := strings.Split(f, "-")
+	blocks := strings.Split(base, "-")
 	// fmt.Println("[DEBUG] parseOrderType() split filename: ", blocks)
 	if len(blocks) < 4 {
 		return "不明"

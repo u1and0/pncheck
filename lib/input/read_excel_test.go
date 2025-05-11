@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/xuri/excelize/v2"
+
+	"pncheck/lib/output"
 )
 
 // --- テストヘルパー: テスト用Excelファイル作成 ---
@@ -49,7 +51,7 @@ func createTestExcelFile(t *testing.T, dir, filename string, layoutFunc func(f *
 
 	// テスト終了時にファイルを削除
 	t.Cleanup(func() {
-		os.Remove(modifyFilePath(filePath)) // "pncheck_" prefixファイルの削除
+		os.Remove(output.ModifyFileExt(filePath, ".pncheck.xlsx")) // "pncheck_" prefixファイルの削除
 		os.Remove(filePath)
 		os.Remove(dir) // ディレクトリが空なら削除
 	})
@@ -304,43 +306,6 @@ func TestReadExcelToSheet_EmptySheet(t *testing.T) {
 	t.Log("空の明細シートを正常に処理しました。")
 }
 
-func TestFilenameWithoutExt(t *testing.T) {
-	tests := []struct {
-		name     string
-		filePath string
-		want     string
-	}{
-		// {"file with extension", "/path/to/file.txt", "file"},
-		{"relative file path", "./file.txt", "file"},
-		{"file without extension", "./path/to/file.txt", "file"},
-		{"file with multiple extensions", "/path/to/file.tar.gz", "file.tar"},
-		{"file with dot in name", "/path/to/file.with.dots.txt", "file.with.dots"},
-		{"file with double dot in name", "/path/to/file..txt", "file."},
-		{"empty string", "", ""},
-		{"just a dot", ".", ""},
-		{"just a slash", "/", "/"},
-		{"no path", "file.txt", "file"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := FilenameWithoutExt(tt.filePath); got != tt.want {
-				t.Errorf("FilenameWithoutExt(%q) = %q, want %q", tt.filePath, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestFilenameWithoutExtError(t *testing.T) {
-	var filePath string
-	defer func() {
-		if r := recover(); r != nil {
-			t.Logf("Recovered in FilenameWithoutExt: %v", r)
-		}
-	}()
-	FilenameWithoutExt(filePath)
-}
-
 func TestActivateOrderSheet(t *testing.T) {
 	// Initialize an Excel file
 	testDir := "testdata_activate"
@@ -429,33 +394,33 @@ func TestModifyFilePath(t *testing.T) {
 		{
 			name:     "basic functionality",
 			filePath: "/path/to/file.txt",
-			want:     "/path/to/pncheck_file.txt",
+			want:     "/path/to/file.pncheck.xlsx",
 		},
 		{
 			name:     "filename with extension",
 			filePath: "/path/to/file.with.multiple.extensions.txt",
-			want:     "/path/to/pncheck_file.with.multiple.extensions.txt",
+			want:     "/path/to/file.with.multiple.extensions.pncheck.xlsx",
 		},
 		{
 			name:     "filename without extension",
 			filePath: "/path/to/file",
-			want:     "/path/to/pncheck_file",
+			want:     "/path/to/file.pncheck.xlsx",
 		},
 		{
 			name:     "empty string",
 			filePath: "",
-			want:     "pncheck_.",
+			want:     "..pncheck.xlsx",
 		},
 		{
 			name:     "just a filename",
 			filePath: "file.txt",
-			want:     "pncheck_file.txt",
+			want:     "file.pncheck.xlsx",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := modifyFilePath(tt.filePath)
+			got := output.ModifyFileExt(tt.filePath, ".pncheck.xlsx")
 			if got != tt.want {
 				t.Errorf("modifyFilePath() got = %v, want %v", got, tt.want)
 			}

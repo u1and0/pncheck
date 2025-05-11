@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
 
 	"pncheck/lib"
 	"pncheck/lib/output"
@@ -32,7 +34,7 @@ func main() {
 		err = output.WriteFatal(filePath, err)
 		// WriteFatalでもエラーが発生したらFATALLOGに書き込む
 		if err != nil {
-			log.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			output.LogFatalError(FATALLOG, err.Error())
 		}
 	}

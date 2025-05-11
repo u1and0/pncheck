@@ -62,7 +62,7 @@ func handleResponse(filePath string, body []byte, code int) error {
 		fmt.Fprintf(os.Stderr, "PNSerach response %d\n", code)
 		fmt.Printf("%s\n", body)
 
-		jsonFilename := input.FilenameWithoutExt(filePath) + ".json"
+		jsonFilename := output.ModifyFileExt(filePath, ".json")
 		return output.WriteErrorToJSON(jsonFilename, body)
 	}
 	// 成功したらコンソールに成功メッセージを書くだけ
