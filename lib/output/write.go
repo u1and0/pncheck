@@ -71,7 +71,9 @@ func WriteFatal(filePath string, err error) error {
 	if err != nil {
 		return fmt.Errorf("JSONパースエラー: %w", err)
 	}
+
 	// JSON型エラーの表示
+	// jqでハイライトして見たいので標準出力へ
 	fmt.Println(string(errJSON))
 
 	// JSONファイルへ書き込み
