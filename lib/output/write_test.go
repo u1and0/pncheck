@@ -249,8 +249,8 @@ func TestWriteFatal(t *testing.T) {
 		}
 
 		testErr := errors.New("test error")
-		err = WriteFatal(filePath, testErr)
-		if err == nil {
+		err = WriteFatal(jsonFilePath, testErr)
+		if err != nil {
 			t.Errorf("WriteFatal did not return error when writing to JSON file failed")
 		}
 	})
