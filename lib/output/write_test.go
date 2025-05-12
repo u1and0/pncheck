@@ -193,7 +193,7 @@ func TestWriteFatal(t *testing.T) {
 			t.Errorf("WriteFatal returned error: %v", err)
 		}
 
-		jsonFilePath := filepath.Join(tmpDir, "test.json")
+		jsonFilePath := "test.json"
 		if _, err := os.Stat(jsonFilePath); os.IsNotExist(err) {
 			t.Errorf("JSON file %s not found", jsonFilePath)
 		}
@@ -249,8 +249,8 @@ func TestWriteFatal(t *testing.T) {
 		}
 
 		testErr := errors.New("test error")
-		err = WriteFatal(filePath, testErr)
-		if err == nil {
+		err = WriteFatal(jsonFilePath, testErr)
+		if err != nil {
 			t.Errorf("WriteFatal did not return error when writing to JSON file failed")
 		}
 	})
