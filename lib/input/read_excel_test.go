@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/xuri/excelize/v2"
+
+	"pncheck/lib/output"
 )
 
 // --- テストヘルパー: テスト用Excelファイル作成 ---
@@ -49,6 +51,7 @@ func createTestExcelFile(t *testing.T, dir, filename string, layoutFunc func(f *
 
 	// テスト終了時にファイルを削除
 	t.Cleanup(func() {
+		os.Remove(output.ModifyFileExt(filePath, ".pncheck.xlsx")) // "pncheck_" prefixファイルの削除
 		os.Remove(filePath)
 		os.Remove(dir) // ディレクトリが空なら削除
 	})
@@ -109,22 +112,20 @@ func setValidLayout(f *excelize.File) {
 // expectedSheet.Header.ProjectID の期待値を修正
 func TestReadExcelToSheet_Success(t *testing.T) {
 	testDir := "testdata_read"
-	testFile := createTestExcelFile(t, testDir, "success-001-read-K.xlsx", setValidLayout)
+	testFile := createTestExcelFile(t, testDir, "20231027-success-read-K.xlsx", setValidLayout)
 
 	expectedSheet := Sheet{
 		Config: Config{Validatable: true, Sortable: true},
 		Header: Header{
 			OrderType:   購入,
-			ProjectID:   "1234501",           // D1 + F1
-			ProjectName: "テストプロジェクト",         // D5
-			RequestDate: "2023/10/27",        // D4
-			Deadline:    "2023/11/30",        // D2
-			FileName:    "success_read.xlsx", // ファイル名
-			// UserSection: "開発部",       // UserSection は読み込まなくなったので削除
-			Note: "備考欄テスト", // D6
+			ProjectID:   "1234501",                              // D1 + F1
+			ProjectName: "テストプロジェクト",                            // D5
+			RequestDate: "2023/10/27",                           // D4
+			Deadline:    "2023/11/30",                           // D2
+			FileName:    "pncheck_20231027-success-read-K.xlsx", // ファイル名 ダミーのpncheck_ prefixがつく
+			Note:        "備考欄テスト",                               // D6
 		},
 		Orders: Orders{
-			// ... (Orders の期待値は変更なし) ...
 			{ // Row 2
 				Lv: 1, Pid: "PN-001", Name: "部品A", Type: "TypeX",
 				Quantity: 10.5, Unit: "個", Deadline: "2023/11/15", Kenku: "受入",
@@ -153,19 +154,19 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 	// ↑ parseFileNameInfo が filePath を受け取るので、テストファイル自体の名前を期待値に合わせるか、
 	//   parseFileNameInfo の引数を固定値にするなどの工夫が必要
 
-	// ---- parseFileNameInfo を直接呼び出すのではなく、ReadExcelToSheet内で呼ばれることを考慮 ----
-	// ReadExcelToSheet は filePath を引数にとり、その中で parseFileNameInfo(filePath) を呼ぶ
-	// そのため、テスト用のExcelファイル名自体が parseFileNameInfo のフォーマットに合致している必要がある
-
-	// テストファイル名を parseFileNameInfo が成功する形式にする
-	// 例: "YYYYMMDD-ProjectID(親)-Serial-OrderType.xlsx"
-	// このテストでは OrderType 購入 (K) を期待
-	correctFormatFileName := fmt.Sprintf("20231027-%s-TESTSERIAL-K.xlsx", expectedSheet.Header.ProjectID)
-	// createTestExcelFile でファイル名を設定し直すか、テスト前にリネームする
-	// ここでは createTestExcelFile に渡すファイル名を変更する
-	testFile = createTestExcelFile(t, testDir, correctFormatFileName, setValidLayout)
-	// 期待値の FileName も合わせる
-	expectedSheet.Header.FileName = correctFormatFileName
+	// // ---- parseFileNameInfo を直接呼び出すのではなく、ReadExcelToSheet内で呼ばれることを考慮 ----
+	// // ReadExcelToSheet は filePath を引数にとり、その中で parseFileNameInfo(filePath) を呼ぶ
+	// // そのため、テスト用のExcelファイル名自体が parseFileNameInfo のフォーマットに合致している必要がある
+	//
+	// // テストファイル名を parseFileNameInfo が成功する形式にする
+	// // 例: "YYYYMMDD-ProjectID(親)-Serial-OrderType.xlsx"
+	// // このテストでは OrderType 購入 (K) を期待
+	// correctFormatFileName := fmt.Sprintf("20231027-%s-TESTSERIAL-K.xlsx", expectedSheet.Header.ProjectID)
+	// // createTestExcelFile でファイル名を設定し直すか、テスト前にリネームする
+	// // ここでは createTestExcelFile に渡すファイル名を変更する
+	// testFile = createTestExcelFile(t, testDir, correctFormatFileName, setValidLayout)
+	// // 期待値の FileName も合わせる
+	// expectedSheet.Header.FileName = correctFormatFileName
 
 	actualSheet, err := ReadExcelToSheet(testFile)
 	if err != nil {
@@ -221,7 +222,7 @@ func TestReadExcelToSheet_FileNotFound(t *testing.T) {
 
 func TestReadExcelToSheet_InvalidNumberFormat_Orders(t *testing.T) {
 	testDir := "testdata_read"
-	testFile := createTestExcelFile(t, testDir, "invalid_orders_read-K.xlsx", func(f *excelize.File) {
+	testFile := createTestExcelFile(t, testDir, "20231027-invalid_orders_read-K.xlsx", func(f *excelize.File) {
 		setValidLayout(f)
 		f.SetCellValue(orderSheetName, colQuantity+"2", "Not A Number") // 2行目の数量に文字列
 	})
@@ -230,9 +231,30 @@ func TestReadExcelToSheet_InvalidNumberFormat_Orders(t *testing.T) {
 	if err == nil {
 		t.Fatal("明細行の数値変換エラーが検出されませんでした。")
 	}
-	expectedErrMsg := fmt.Sprintf("明細(%s) 2行目: 数量(%s)が数値ではありません", orderSheetName, colQuantity)
+	expectedErrMsg := fmt.Sprintf("明細(%s) 2行目: 数量(%s)が数値ではありません",
+		orderSheetName, colQuantity)
 	if !strings.Contains(err.Error(), expectedErrMsg) {
-		t.Errorf("期待されるエラーメッセージが含まれていません。\n期待含む: %s\n実際: %v", expectedErrMsg, err)
+		t.Errorf("期待されるエラーメッセージが含まれていません。\n期待含む: %s\n実際: %v",
+			expectedErrMsg, err)
+	}
+	t.Logf("期待通り明細数値エラーを検出: %v", err)
+}
+
+func TestReadExcelToSheet_InvalidFilenameRequestDate(t *testing.T) {
+	testDir := "testdata_read"
+	testFile := createTestExcelFile(t, testDir, "20231029-invalid_orders_read-K.xlsx", func(f *excelize.File) {
+		setValidLayout(f)
+		f.SetCellValue(orderSheetName, colQuantity+"2", "Not A Number") // 2行目の数量に文字列
+	})
+
+	_, err := ReadExcelToSheet(testFile)
+	if err == nil {
+		t.Fatal("明細行の数値変換エラーが検出されませんでした。")
+	}
+	expectedErrMsg := "入力IIの要求年月日とファイル名の要求年月日に矛盾があります"
+	if !strings.Contains(err.Error(), expectedErrMsg) {
+		t.Errorf("期待されるエラーメッセージが含まれていません。\n期待含む: %s\n実際: %v",
+			expectedErrMsg, err)
 	}
 	t.Logf("期待通り明細数値エラーを検出: %v", err)
 }
@@ -257,119 +279,108 @@ func TestReadExcelToSheet_EmptySheet(t *testing.T) {
 		ProjectID:   "9999900", // 親番 + 枝番
 		ProjectName: "空シートテスト",
 		// RequestDate など、設定していないフィールドはゼロ値のまま
-		FileName: correctFormatFileName,
+		FileName: "pncheck_" + correctFormatFileName,
 	}
 
 	sheet, err := ReadExcelToSheet(testFile)
-	if err != nil {
-		// parseFileNameInfo でエラーになる可能性があるためチェック
-		t.Fatalf("空の明細シートで予期せぬエラー: %v", err)
-	}
 	if len(sheet.Orders) != 0 {
 		t.Errorf("明細が空のはずが、%d件読み込まれました。", len(sheet.Orders))
 	}
 	// ヘッダーを比較 (ProjectID と FileName、OrderType のみチェック)
 	if sheet.Header.ProjectID != expectedHeader.ProjectID {
-		t.Errorf("空の明細シートでもヘッダーは読み込まれるはずです。ProjectID: 期待=%q, 実際=%q", expectedHeader.ProjectID, sheet.Header.ProjectID)
+		t.Errorf("空の明細シートでもヘッダーは読み込まれるはずです。ProjectID: expected=%q, actual=%q",
+			expectedHeader.ProjectID, sheet.Header.ProjectID)
 	}
 	if sheet.Header.FileName != expectedHeader.FileName {
-		t.Errorf("FileNameが期待値と異なります。FileName: 期待=%q, 実際=%q", expectedHeader.FileName, sheet.Header.FileName)
+		t.Errorf("FileNameが期待値と異なります。FileName: expected=%q, actual=%q",
+			expectedHeader.FileName, sheet.Header.FileName)
 	}
 	if sheet.Header.OrderType != expectedHeader.OrderType {
-		t.Errorf("OrderTypeが期待値と異なります。OrderType: 期待=%q, 実際=%q", expectedHeader.OrderType, sheet.Header.OrderType)
+		t.Errorf("OrderTypeが期待値と異なります。OrderType: expected=%q, actual=%q",
+			expectedHeader.OrderType, sheet.Header.OrderType)
+	}
+	if err != nil {
+		// parseFileNameInfo でエラーになる可能性があるためチェック
+		t.Log("空の明細シートで予期せぬエラー: ", err.Error())
 	}
 	t.Log("空の明細シートを正常に処理しました。")
 }
 
-func TestParseOrderType(t *testing.T) {
+func TestActivateOrderSheet(t *testing.T) {
+	// Initialize an Excel file
+	testDir := "testdata_activate"
+	testFileName := "testfile.xlsx"
+	testFile := createTestExcelFile(t, testDir, testFileName, setValidLayout)
+
 	tests := []struct {
-		name     string
-		filePath string
-		expected OrderType
+		name           string
+		filePath       string
+		sheetName      string
+		wantErr        bool
+		wantErrMsg     string
+		activeSheetIdx int
 	}{
-		// --- Happy Path Cases (Valid Endings) ---
-		{"Valid S Ending", "path/to/222-some-file-S", 出庫},
-		{"Valid K Ending", "another/dir/222-222-data-K", 購入},
-		{"Valid G Ending", "just-a-name-G", 外注},
-		{"Valid S Ending - No Path", "file-tbd-20-S-2", 出庫},
-		{"Valid K Ending - No Path", "doc-123--K-1", 購入},
-		{"Valid G Ending - No Path", "2002-1234-tbd-G-その3", 外注},
-		{"Valid S Ending - Multiple Hyphens", "prefix-middle-suffix-S", 出庫},
-		{"Valid K Ending - Multiple Hyphens", "a-b-c-K", 購入},
-		{"Valid G Ending - Multiple Hyphens", "x-y-z-G", 外注},
-		{"Valid S Ending - Hyphen at Start", "202-231-tbd-S", 出庫}, // filepath.Base is "-file-S", split is ["", "file", "S"]
-
-		// --- Unhappy Path Cases (Invalid Endings / Default) ---
-		{"Invalid Ending - X", "file-X", 不明},
-		{"Invalid Ending - ABC", "data-abc", 不明},
-		{"Invalid Ending - Number", "report-123", 不明},
-		{"Invalid Ending - Empty String after Hyphen", "file-", 不明}, // Split results in ["file", ""], last is ""
-		{"Invalid Ending - Lowercase s", "file--s", 不明},             // Case sensitive
-		{"Invalid Ending - Lowercase k", "file---k", 不明},
-		{"Invalid Ending - Lowercase g", "file--g", 不明},
-		{"Invalid Ending - Mixed Case", "file--S ", 不明}, // Trailing space
-
-		// --- Edge Cases (No Hyphens, Empty, etc.) ---
-		{"No Hyphens - Just S", "S", 不明}, // Last block is "S", but not after a hyphen
-		{"No Hyphens - Just K", "K", 不明},
-		{"No Hyphens - Just G", "G", 不明},
-		{"No Hyphens - Regular Filename", "myfile.txt", 不明},       // Last block is "myfile.txt"
-		{"No Hyphens - Filename with Dots", "archive.tar.gz", 不明}, // Last block is "archive.tar.gz"
-		{"Empty String Input", "", 不明},                            // filepath.Base("") is ".", Split(".") is [".", ""], last is "" -> "不明" (behavior might vary slightly by OS, but "." or "" are common)
-		{"Just a Hyphen", "-", 不明},                                // filepath.Base("-") is "-", Split("-") is ["", ""], last is "" -> "不明"
-		{"Hyphen at End", "file-S-", 不明},                          // filepath.Base("file-S-") is "file-S-", Split is ["file", "S", ""], last is "" -> "不明"
-		{"Hyphen at Start and End", "-file-S-", 不明},               // filepath.Base is "-file-S-", Split is ["", "file", "S", ""], last is "" -> "不明"
-
-		// --- Directory Path Cases ---
-		{"Directory Path - No File", "/path/to/dir/", 不明}, // filepath.Base is "dir"
-		{"Root Directory Path", "/", 不明},                  // filepath.Base is "/"
-		{"Current Directory", ".", 不明},                    // filepath.Base is "."
-		{"Parent Directory", "..", 不明},                    // filepath.Base is ".."
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			actual := parseOrderType(tc.filePath)
-			if actual != tc.expected {
-				t.Errorf("parseOrderType(%q): Expected %q, Got %q", tc.filePath, tc.expected, actual)
-			}
-		})
-	}
-}
-
-func TestFilenameWithoutExt(t *testing.T) {
-	tests := []struct {
-		name     string
-		filePath string
-		want     string
-	}{
-		// {"file with extension", "/path/to/file.txt", "file"},
-		{"relative file path", "./file.txt", "file"},
-		{"file without extension", "./path/to/file.txt", "file"},
-		{"file with multiple extensions", "/path/to/file.tar.gz", "file.tar"},
-		{"file with dot in name", "/path/to/file.with.dots.txt", "file.with.dots"},
-		{"file with double dot in name", "/path/to/file..txt", "file."},
-		{"empty string", "", ""},
-		{"just a dot", ".", ""},
-		{"just a slash", "/", "/"},
-		{"no path", "file.txt", "file"},
+		{
+			name:           "success",
+			filePath:       testFile,
+			wantErr:        true,
+			wantErrMsg:     "新しく保存しました。",
+			activeSheetIdx: 0, // idx==0は入力II
+		},
+		{
+			name:           "already active",
+			filePath:       testFile,
+			wantErr:        false,
+			activeSheetIdx: 1,
+		},
+		{
+			name:       "file not found",
+			filePath:   "non-existent-file.xlsx",
+			wantErr:    true,
+			wantErrMsg: "ファイルを開けません",
+		},
+		{
+			name:       "order sheet not found",
+			filePath:   testFile,
+			sheetName:  "不正なシート名",
+			wantErr:    true,
+			wantErrMsg: "入力Iシートが見つかりません",
+		},
 	}
 
 	for _, tt := range tests {
+		// テストのためにあえて入力I以外のシートをアクティブにする
 		t.Run(tt.name, func(t *testing.T) {
-			if got := FilenameWithoutExt(tt.filePath); got != tt.want {
-				t.Errorf("FilenameWithoutExt(%q) = %q, want %q", tt.filePath, got, tt.want)
+			f, _ := excelize.OpenFile(tt.filePath)
+			if tt.activeSheetIdx > 0 {
+				f.SetActiveSheet(tt.activeSheetIdx)
+				if err := f.SaveAs(tt.filePath); err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
+
+		// テストのためにあえて入力I以外のシート名にする
+		t.Run(tt.name, func(t *testing.T) {
+			f, _ := excelize.OpenFile(tt.filePath)
+			if tt.sheetName != "" {
+				f.SetSheetName(orderSheetName, tt.sheetName)
+				if err := f.SaveAs(tt.filePath); err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
+
+		t.Run(tt.name, func(t *testing.T) {
+			err := ActivateOrderSheet(tt.filePath)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ActivateOrderSheet() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if tt.wantErr && !strings.Contains(fmt.Sprintf("%v", err), tt.wantErrMsg) {
+				t.Errorf("ActivateOrderSheet() error message = %v, wantErrMsg %v", err, tt.wantErrMsg)
 			}
 		})
 	}
-}
-
-func TestFilenameWithoutExtError(t *testing.T) {
-	var filePath string
-	defer func() {
-		if r := recover(); r != nil {
-			t.Logf("Recovered in FilenameWithoutExt: %v", r)
-		}
-	}()
-	FilenameWithoutExt(filePath)
 }

@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	VERSION  = "v0.1.0"
+	VERSION  = "v0.1.1"
 	FATALLOG = "pncheck_fatal_report.log"
 )
 
@@ -18,18 +18,24 @@ func main() {
 	// コマンドライン引数を解析
 	filePaths, err := lib.ParseArguments(VERSION)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
+		output.LogFatalError(FATALLOG, err.Error())
 	}
 
 	// 各ファイルを処理
 	for _, filePath := range filePaths {
-		if err := lib.ProcessExcelFile(filePath); err != nil {
-			// エラーがあったら標準エラーに出力した後FATALLOGに書き込む
-			msg := fmt.Sprintf("PNCheck Error: %s\n", err)
-			fmt.Fprintf(os.Stderr, msg)
-			if err = output.LogFatalError(FATALLOG, msg); err != nil {
-				log.Fatalf("Fatal: %s にログを記録できません\n", FATALLOG)
-			}
+		err := lib.ProcessExcelFile(filePath)
+		if err == nil {
+			continue
+		}
+
+		// JSON型ではないエラーの表示
+		// fmt.Fprintf(os.Stderr, "ファイル名:%s, pncheck %s\n", filePath, err)
+		err = output.WriteFatal(filePath, err)
+		// WriteFatalでもエラーが発生したらFATALLOGに書き込む
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			output.LogFatalError(FATALLOG, err.Error())
 		}
 	}
 }

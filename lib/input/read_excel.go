@@ -1,47 +1,14 @@
 package input
 
 import (
+	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
-	"strings"
+	"time"
 
 	"github.com/xuri/excelize/v2"
-)
 
-// --- 定数定義 (Excelレイアウト - requestパッケージの書き込みコードに基づく) ---
-
-const (
-	headerSheetName = "入力Ⅱ" // ヘッダー情報が主に書かれているシート名
-	orderSheetName  = "入力Ⅰ" // 明細情報が書かれているシート名 (requestパッケージの定数を使用)
-
-	// --- Header セル位置 (入力Ⅱ) ---
-	projectIDCell   = "D1" // 製番 (親番)
-	projectEdaCell  = "F1" // 製番 (枝番) - 親番 + 枝番 => 製番　とする
-	deadlineHCell   = "D2" // 製番納期
-	requestDateCell = "D4" // 要求年月日
-	projectNameCell = "D5" // 製番名称
-	noteCell        = "D6" // 備考
-	// userSectionCell = "P5" // 要求元 (※要確認: 印刷シートから転記されている想定)
-	// orderTypeCell   = "B2" // 発注区分 (※要確認: 書き込みコードに該当なし、テンプレート依存の可能性大)
-
-	// --- Order セル位置 (入力Ⅰ) ---
-	ordersStartRow = 2   // 明細行が始まる行
-	colLv          = "A" // Lv列
-	colPid         = "E" // 品番列
-	colName        = "F" // 品名列
-	colType        = "G" // 型式列
-	colQuantity    = "I" // 数量列
-	colDeadlineO   = "J" // 要望納期列
-	colKenku       = "K" // 検区列
-	colDevice      = "M" // 装置名列
-	colSerial      = "N" // 号機列
-	colMaker       = "O" // メーカ列
-	// colCompositionQty = "Y" // 構成数量 (固定値1のため読み込み不要)
-	colUnit           = "BE" // 単位列
-	colVendor         = "BF" // 要望先列
-	colUnitPrice      = "BG" // 予定単価列
-	maxEmptyRowsCheck = 5    // 連続で何行空行なら明細終了とみなすか
+	"pncheck/lib/output"
 )
 
 // ReadExcelToSheet は指定されたExcelファイルを読み込み、Sheet構造体に変換します。
@@ -65,16 +32,37 @@ func ReadExcelToSheet(filePath string) (sheet Sheet, err error) {
 
 	// 有効なファイルであることを確認できたら、
 	// Sheetを作成して、Header,Orderの読み込み
-	name := filepath.Base(filePath)
-	sheet = *New(name)
-	// 発注区分をファイル名から分類
-	sheet.Header.OrderType = parseOrderType(filePath)
+	sheet = *New(filePath)
 	// 発注区分以外のヘッダー情報をExcelファイルから読み込み
 	if err = sheet.Header.read(f); err != nil {
+		err = fmt.Errorf("入力II読み込みエラー: '%s': %w\n", filePath, err)
 		return
 	}
+
+	// 入力IIの要求年月日とファイル名の要求年月日に矛盾を確認
+	s1, err := parseDateSafe(sheet.Header.RequestDate)
+	if err != nil {
+		err = fmt.Errorf("時間型パースエラー: %s, %w", sheet.Header.RequestDate, err)
+		return
+	}
+	d1, err := time.Parse(dateLayout, s1)
+	if err != nil {
+		err = fmt.Errorf("時間型パースエラー: %s, %w", sheet.Header.RequestDate, err)
+		return
+	}
+	d2, err := parseFilenameDate(filePath)
+	if err != nil {
+		err = fmt.Errorf("時間型パースエラー: %s, %w", filePath, err)
+		return
+	}
+	if d1 != d2 {
+		err = errors.New("入力IIの要求年月日とファイル名の要求年月日に矛盾があります")
+		return
+	}
+
 	// オーダー情報をExcelファイルから読み込み
 	if err = sheet.Orders.read(f); err != nil {
+		err = fmt.Errorf("入力I読み込みエラー: '%s': %w\n", filePath, err)
 		return
 	}
 
@@ -99,14 +87,34 @@ func validateFile(f string) error {
 	return nil
 }
 
-// FilenameWithoutExt : ファイルパスを渡して
-// 拡張子なしのファイル名を返す
-// ディレクトリの場合、Base名をそのまま返す
-func FilenameWithoutExt(filePath string) string {
-	if filePath == "" {
-		return ""
+// ActivateOrderSheet : 入力I以外がアクティブシートだったら
+// 入力Iをアクティブにして保存して終了
+func ActivateOrderSheet(filePath string) error {
+	f, err := excelize.OpenFile(filePath)
+	if err != nil {
+		return fmt.Errorf("ファイルを開けません '%s': %w\n", filePath, err)
 	}
-	base := filepath.Base(filePath)
-	ext := filepath.Ext(filePath)
-	return strings.TrimSuffix(base, ext)
+	defer f.Close()
+
+	activeSheetIndex := f.GetActiveSheetIndex()
+	idx, err := f.GetSheetIndex(orderSheetName)
+	if err != nil || idx == -1 {
+		return fmt.Errorf("入力Iシートが見つかりません: %w\n", err)
+	}
+
+	// 現在のアクティブシートが入力Iだったら何もせずに終了
+	if idx == activeSheetIndex {
+		return nil
+	}
+
+	// 入力I以外がアクティブシートだったら
+	// 入力Iをアクティブにして保存して終了
+	f.SetActiveSheet(idx)
+
+	newFilePath := output.ModifyFileExt(filePath, ".pncheck.xlsx")
+	if err := f.SaveAs(newFilePath); err != nil {
+		return fmt.Errorf("ファイル書き込みエラー: %w\n", err)
+	}
+	return fmt.Errorf("入力Iをアクティブにして%sへ新しく保存しました。",
+		newFilePath)
 }

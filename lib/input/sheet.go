@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -21,13 +22,47 @@ const (
 	apiEndpointPath = "/api/v1/requests/confirm"
 )
 
+// 定数定義 (Excelレイアウト - requestパッケージの書き込みコードに基づく)
+const (
+	headerSheetName = "入力Ⅱ" // ヘッダー情報が主に書かれているシート名
+	orderSheetName  = "入力Ⅰ" // 明細情報が書かれているシート名 (requestパッケージの定数を使用)
+
+	// --- Header セル位置 (入力Ⅱ) ---
+	projectIDCell   = "D1" // 製番 (親番)
+	projectEdaCell  = "F1" // 製番 (枝番) - 親番 + 枝番 => 製番　とする
+	deadlineHCell   = "D2" // 製番納期
+	requestDateCell = "D4" // 要求年月日
+	projectNameCell = "D5" // 製番名称
+	noteCell        = "D6" // 備考
+	// userSectionCell = "P5" // 要求元 (※要確認: 印刷シートから転記されている想定)
+	// orderTypeCell   = "B2" // 発注区分 (※要確認: 書き込みコードに該当なし、テンプレート依存の可能性大)
+
+	// --- Order セル位置 (入力Ⅰ) ---
+	ordersStartRow = 2   // 明細行が始まる行
+	colLv          = "A" // Lv列
+	colPid         = "E" // 品番列
+	colName        = "F" // 品名列
+	colType        = "G" // 型式列
+	colQuantity    = "I" // 数量列
+	colDeadlineO   = "J" // 要望納期列
+	colKenku       = "K" // 検区列
+	colDevice      = "M" // 装置名列
+	colSerial      = "N" // 号機列
+	colMaker       = "O" // メーカ列
+	// colCompositionQty = "Y" // 構成数量 (固定値1のため読み込み不要)
+	colUnit           = "BE" // 単位列
+	colVendor         = "BF" // 要望先列
+	colUnitPrice      = "BG" // 予定単価列
+	maxEmptyRowsCheck = 5    // 連続で何行空行なら明細終了とみなすか
+)
+
 var (
 	// APIサーバーのアドレス http://localhost:8080 (ビルド時に注入)
 	serverAddress string
 	// API通信のデフォルトタイムアウト
 	defaultTimeout = 30 * time.Second
 	// PNSearch規格外の日付文字列
-	dateLayoutSub = []string{"01-02-06"}
+	dateLayoutSub = "01-02-06"
 	// 一つだけで十分そう？
 	// dateLayoutSub  = []string{"2006/1/2", "1/2/2006", "01-02-06"} // PNSearch規格外の日付文字列
 )
@@ -78,10 +113,16 @@ type (
 	}
 )
 
-func New(fileName string) *Sheet {
+func New(f string) *Sheet {
 	return &Sheet{
 		Config: Config{true, true},
-		Header: Header{FileName: fileName},
+		Header: Header{
+			// ディレクトリを除いたファイル名のみ+surfix _pncheck
+			// 30エラーを出さないためのダミーファイル名
+			FileName: "pncheck_" + filepath.Base(f),
+			// 発注区分をファイル名から分類
+			OrderType: parseOrderType(f),
+		},
 		Orders: make(Orders, 0),
 	}
 }
@@ -153,15 +194,12 @@ func parseDateSafe(s string) (string, error) {
 		return s, nil
 	}
 	// Excel標準の型でもパースできなければエラー
-	for _, l := range dateLayoutSub {
-		var t time.Time
-		t, err = time.Parse(l, s)
-		// fmt.Fprintln(os.Stderr, "[DEBUG]", "parse success", t)
-		// パースに成功したらPNSearch標準の文字列型で返す
-		if err == nil {
-			// fmt.Fprintln(os.Stderr, "[DEBUG]", "return date string", t.Format(dateLayout))
-			return t.Format(dateLayout), nil
-		}
+	t, err := time.Parse(dateLayoutSub, s)
+	// fmt.Fprintln(os.Stderr, "[DEBUG]", "parse success", t)
+	// パースに成功したらPNSearch標準の文字列型で返す
+	if err == nil {
+		// fmt.Fprintln(os.Stderr, "[DEBUG]", "return date string", t.Format(dateLayout))
+		return t.Format(dateLayout), nil
 	}
 	return s, err
 }

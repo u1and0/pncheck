@@ -11,7 +11,7 @@ import (
 // これより大きいHTTPステータスコードは処理を分岐する
 // 逆に、successCode未満のステータスは成功
 const (
-	successCode = 400
+	successCode = 300
 	errorCode   = 500
 )
 
@@ -20,6 +20,12 @@ const (
 func ProcessExcelFile(filePath string) error {
 	// Excel読み込み
 	sheet, err := input.ReadExcelToSheet(filePath)
+	if err != nil {
+		return fmt.Errorf("Excel読み込みエラー: %w", err)
+	}
+
+	// 入力Iをアクティベートする
+	err = input.ActivateOrderSheet(filePath)
 	if err != nil {
 		return fmt.Errorf("Excel読み込みエラー: %w", err)
 	}
@@ -34,8 +40,8 @@ func ProcessExcelFile(filePath string) error {
 
 // handleResponse processes API responses based on status code
 // codeに対する処理を分岐
-// 200-300台ステータスコードは何もしない
-// 400番台ステータスコードはファイル名.jsonにエラーの内容を書き込む
+// 200台ステータスコードは何もしない
+// 300,400番台ステータスコードはファイル名.jsonにエラーの内容を書き込む
 // 500番台ステータスコードはPOSTに失敗しているので、faital_report.log にエラーを書き込み
 func handleResponse(filePath string, body []byte, code int) error {
 	// APIレスポンス解析とエラー出力 (ボディがあれば実行)
@@ -47,13 +53,8 @@ func handleResponse(filePath string, body []byte, code int) error {
 		return fmt.Errorf("APIレスポンス解析エラー (ステータス: %d): %s", code, body)
 	}
 
-	// 400番台はPNResponseをファイル名+.jsonに書き込む
+	// 300,400番台はPNResponseをファイル名+.jsonに書き込む
 	if code >= successCode {
-		// TODO
-		// 警告の場合はJSON?コンソールに成功メッセージを書くだけ？
-		// case code < 400:
-		// 	fmt.Println("Warning:", filePath)
-
 		// 標準エラーにResponse とステータスコード、
 		// 標準出力にレスポンス詳細を出力することで
 		// `pncheck XYZ.xlsx | jq`
@@ -61,7 +62,7 @@ func handleResponse(filePath string, body []byte, code int) error {
 		fmt.Fprintf(os.Stderr, "PNSerach response %d\n", code)
 		fmt.Printf("%s\n", body)
 
-		jsonFilename := input.FilenameWithoutExt(filePath) + ".json"
+		jsonFilename := output.WithoutFileExt(filePath) + ".json"
 		return output.WriteErrorToJSON(jsonFilename, body)
 	}
 	// 成功したらコンソールに成功メッセージを書くだけ
