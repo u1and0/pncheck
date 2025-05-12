@@ -77,7 +77,8 @@ func WriteFatal(filePath string, err error) error {
 	fmt.Println(string(errJSON))
 
 	// JSONファイルへ書き込み
-	jsonFilename := ModifyFileExt(filePath, ".json")
+	// pncheck実行ディレクトリにJSONを配置する
+	jsonFilename := WithoutFileExt(filePath) + ".json"
 	return WriteErrorToJSON(jsonFilename, errJSON)
 }
 
@@ -89,9 +90,18 @@ func ModifyFileExt(filePath, newExt string) string {
 	var (
 		// ディレクトリとファイル名と拡張子を分離
 		dir      = filepath.Dir(filePath)
-		fileName = filepath.Base(filePath)
-		ext      = filepath.Ext(filePath)
-		fileBase = strings.TrimSuffix(fileName, ext)
+		fileBase = WithoutFileExt(filePath)
 	)
 	return filepath.Join(dir, fileBase+newExt)
+}
+
+// WithoutFileExt : ディレクトリパスと拡張子を取り除く
+func WithoutFileExt(filePath string) string {
+	var (
+		// ディレクトリとファイル名と拡張子を分離
+		fileName = filepath.Base(filePath)
+		ext      = filepath.Ext(filePath)
+	)
+	return strings.TrimSuffix(fileName, ext)
+
 }
