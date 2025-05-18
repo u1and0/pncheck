@@ -14,6 +14,10 @@ const (
 	FATALLOG = "pncheck_fatal_report.log"
 )
 
+
+// レスポンスの結果を書き込む
+var records []output.ErrorRecord
+
 func main() {
 	// コマンドライン引数を解析
 	filePaths, err := lib.ParseArguments(VERSION)
@@ -26,16 +30,19 @@ func main() {
 	for _, filePath := range filePaths {
 		err := lib.ProcessExcelFile(filePath)
 		if err == nil {
+			records = append(records, Record{filePath, "エラーはありません", ""})
 			continue
 		}
 
+		record := Record{filePath, }
 		// JSON型ではないエラーの表示
 		// fmt.Fprintf(os.Stderr, "ファイル名:%s, pncheck %s\n", filePath, err)
 		err = output.WriteFatal(filePath, err)
 		// WriteFatalでもエラーが発生したらFATALLOGに書き込む
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			output.LogFatalError(FATALLOG, err.Error())
+			output.LogFatalError(FATALLOG, fmt.Errorf("エラー: %s への書き込みに失敗しました: %w", FATALLOG, err)
 		}
 	}
+		fmt.Printf("%#v\n", records)
 }

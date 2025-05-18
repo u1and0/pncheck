@@ -49,9 +49,12 @@ func LogFatalError(f string, msg string) error {
 }
 
 // ErrorRecord : pncheck固有のエラーをJSONファイルに書き込むための構造体
+// 成功したらファイル名と成功したメッセージ
+// エラーがあればファイル名とメッセージダイジェストとPNSearch要求票タブを開くためのハッシュ
 type ErrorRecord struct {
 	Filename string `json:"ファイル名"`
 	Error    string `json:"エラー"`
+	Hash     string `json:"ハッシュ,omitempty"`
 }
 
 // WriteFatal : pncheck固有のエラーがあったら 標準エラーに出力した後、
@@ -66,7 +69,7 @@ func WriteFatal(filePath string, err error) error {
 		return nil
 	}
 	// エラーをJSONとしてパース
-	errRecord := ErrorRecord{filepath.Base(filePath), err.Error()}
+	errRecord := ErrorRecord{filepath.Base(filePath), err.Error(), ""}
 	errJSON, err := json.MarshalIndent(errRecord, "", "  ")
 	if err != nil {
 		return fmt.Errorf("JSONパースエラー: %w", err)
