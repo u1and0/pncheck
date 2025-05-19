@@ -3,6 +3,8 @@ package lib
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"time"
 
 	"pncheck/lib/input"
 	"pncheck/lib/output"
@@ -17,55 +19,63 @@ const (
 
 // ProcessExcelFile は1つのExcelファイルを処理し、その結果を FileProcessResult として返します。
 // 内部でファイルの読み込み、JSON変換、API呼び出し、レスポンス処理を行います。
-func ProcessExcelFile(filePath string) error {
-	// Excel読み込み
-	sheet, err := input.ReadExcelToSheet(filePath)
-	if err != nil {
-		return fmt.Errorf("Excel読み込みエラー: %w", err)
-	}
+func ProcessExcelFile(filePaths []string) output.Reports {
+	var reports output.Reports
+	reports.ExecutionTime = time.Now().Format("2006/01/02 15:04:05")
 
-	// 入力Iをアクティベートする
-	err = input.ActivateOrderSheet(filePath)
-	if err != nil {
-		return fmt.Errorf("Excel読み込みエラー: %w", err)
-	}
+	for _, filePath := range filePaths {
+		var report output.Report
+		report.Filename = filepath.Base(filePath)
 
-	// API呼び出し
-	body, code, err := sheet.Post()
-	if err != nil {
-		return fmt.Errorf("API通信エラー: %w", err)
-	}
-	return handleResponse(filePath, body, code)
-}
+		// Excel読み込み
+		sheet, err := input.ReadExcelToSheet(filePath)
+		if err != nil {
+			report.ErrorMessage = fmt.Sprintf("Excel読み込みエラー", err)
+			reports.FatalItems = append(reports.FatalItems, report)
+			continue
+		}
 
-// handleResponse processes API responses based on status code
-// codeに対する処理を分岐
-// 200台ステータスコードは何もしない
-// 300,400番台ステータスコードはファイル名.jsonにエラーの内容を書き込む
-// 500番台ステータスコードはPOSTに失敗しているので、faital_report.log にエラーを書き込み
-func handleResponse(filePath string, body []byte, code int) error {
-	// APIレスポンス解析とエラー出力 (ボディがあれば実行)
-	if body == nil || len(body) < 1 {
-		return fmt.Errorf("APIレスポンス解析エラー bodyがありません(ステータス: %d)", code)
-	}
-	// 500番台はfatal_report_log.json にエラーを追記する
-	if code >= errorCode {
-		return fmt.Errorf("APIレスポンス解析エラー (ステータス: %d): %s", code, body)
-	}
+		// 入力Iをアクティベートして上書き保存する
+		err = input.ActivateOrderSheet(filePath)
+		if err != nil {
+			report.ErrorMessage = fmt.Sprintf("Excel読み込みエラー", err)
+			reports.FatalItems = append(reports.FatalItems, report)
+			continue
+		}
 
-	// 300,400番台はPNResponseをファイル名+.jsonに書き込む
-	if code >= successCode {
-		// 標準エラーにResponse とステータスコード、
-		// 標準出力にレスポンス詳細を出力することで
-		// `pncheck XYZ.xlsx | jq`
-		// のようにしてJSONの整形ができる
-		fmt.Fprintf(os.Stderr, "PNSerach response %d\n", code)
-		fmt.Printf("%s\n", body)
+		// API呼び出し
+		body, code, err := sheet.Post()
+		if err != nil {
+			report.ErrorMessage = fmt.Sprintf("API通信エラー", err)
+			reports.FatalItems = append(reports.FatalItems, report)
+			continue
+		}
+		fmt.Fprintf(os.Stderr, "code: %d\n", code)
+		resp, err := output.JsonParse(body)
+		if err != nil {
+			report.ErrorMessage = fmt.Sprintf("APIレスポンス解析エラー: %v", err)
+			reports.FatalItems = append(reports.FatalItems, report)
+			continue
+		}
 
-		jsonFilename := output.WithoutFileExt(filePath) + ".json"
-		return output.WriteErrorToJSON(jsonFilename, body)
+		if code < 200 { // 発生しないはず
+			report.ErrorMessage = fmt.Sprintf("不明なステータスコード: %v", err)
+			reports.FatalItems = append(reports.FatalItems, report)
+			continue
+		}
+
+		// 正常にAPIからのレスポンスを受け取った場合
+		report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
+		if code >= 500 {
+			report.ErrorMessage = resp.Message
+			reports.FatalItems = append(reports.FatalItems, report)
+		} else if code >= 400 {
+			reports.ErrorItems = append(reports.ErrorItems, report)
+		} else if code >= 300 {
+			reports.WarningItems = append(reports.WarningItems, report)
+		} else if code >= 200 {
+			reports.SuccessItems = append(reports.SuccessItems, report)
+		}
 	}
-	// 成功したらコンソールに成功メッセージを書くだけ
-	fmt.Fprintln(os.Stderr, "Success:", filePath)
-	return nil
+	return reports
 }
