@@ -58,7 +58,7 @@ const (
 
 var (
 	// APIサーバーのアドレス http://localhost:8080 (ビルド時に注入)
-	serverAddress string
+	ServerAddress string
 	// API通信のデフォルトタイムアウト
 	defaultTimeout = 30 * time.Second
 	// PNSearch規格外の日付文字列
@@ -293,14 +293,14 @@ func (o *Orders) read(f *excelize.File) error {
 // レスポンスボディ、HTTPステータスコード、エラーを返します。
 // ステータスコードが2xx以外でも、ボディがあれば読み込んで返します。
 func (sheet *Sheet) Post() (body []byte, statusCode int, err error) {
-	if serverAddress == "" {
+	if ServerAddress == "" {
 		log.Fatalln(
 			`APIサーバーアドレスが空です。ビルド時に設定する必要があります。
-$ go build -ldflags="-X pncheck/lib/input.serverAddress=http://localhost:8080"`,
+$ go build -ldflags="-X pncheck/lib/input.ServerAddress=http://localhost:8080"`,
 		)
 	}
 
-	var apiURL = serverAddress + apiEndpointPath
+	var apiURL = ServerAddress + apiEndpointPath
 	statusCode = 500 // デフォルト500
 
 	jsonData, err := json.Marshal(sheet)
