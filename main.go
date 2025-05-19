@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	VERSION  = "v0.1.1r"
-	FATALLOG = "pncheck_fatal_report.log"
+	VERSION    = "v0.1.1r"
+	FATALLOG   = "pncheck_fatal_report.log"
+	outputPath = "pncheck_report.html"
 )
 
 func main() {
@@ -23,13 +24,8 @@ func main() {
 	}
 
 	// 各ファイルを処理
-	for _, filePath := range filePaths {
-		err := lib.ProcessExcelFile(filePath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "ファイル名:%s, pncheck %s\n", filePath, err)
-			continue
-		}
-		// 成功したらコンソールに成功メッセージを書くだけ
-		fmt.Fprintf(os.Stderr, "ファイル名:%s エラーはありませんでした。\n", filePath)
+	reports := lib.ProcessExcelFile(filePaths)
+	if err = reports.Publish(outputPath); err != nil {
+		fmt.Fprintf(os.Stderr, "レポートファイルの出力に失敗しました: %v\n", err)
 	}
 }

@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/xuri/excelize/v2"
-
-	"pncheck/lib/output"
 )
 
 // ReadExcelToSheet は指定されたExcelファイルを読み込み、Sheet構造体に変換します。
@@ -111,10 +109,8 @@ func ActivateOrderSheet(filePath string) error {
 	// 入力Iをアクティブにして保存して終了
 	f.SetActiveSheet(idx)
 
-	newFilePath := output.ModifyFileExt(filePath, ".pncheck.xlsx")
-	if err := f.SaveAs(newFilePath); err != nil {
+	if err := f.SaveAs(filePath); err != nil {
 		return fmt.Errorf("ファイル書き込みエラー: %w\n", err)
 	}
-	return fmt.Errorf("入力Iをアクティブにして%sへ新しく保存しました。",
-		newFilePath)
+	return fmt.Errorf("入力Iをアクティブにして%sへ上書き保存しました。", filePath)
 }

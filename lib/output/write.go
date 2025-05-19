@@ -1,13 +1,22 @@
 package output
 
 import (
+	"embed"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 	"time"
 )
+
+// templateFile : 出力するレポートのテンプレートファイルのパス
+// embded するファイルパスと同じである必要がある
+const templateFile = "report.tmpl"
+
+//go:embed report.tmpl
+var templateFS embed.FS
 
 // WriteErrorToJSON writes error response to a JSON file
 func WriteErrorToJSON(jsonPath string, body []byte) error {
@@ -28,6 +37,31 @@ func WriteErrorToJSON(jsonPath string, body []byte) error {
 	}
 
 	return nil
+}
+
+type Report struct {
+	Filename, Link, ErrorMessage string
+	// []ErrorRecord  // TODO
+}
+
+type Reports struct {
+	ExecutionTime                                      string
+	SuccessItems, WarningItems, ErrorItems, FatalItems []Report
+}
+
+// Publish : report.tmplを基にReportsをHTMLファイルとして出力する
+func (reports *Reports) Publish(outputPath string) error {
+	tmpl, err := template.ParseFS(templateFS, templateFile)
+	if err != nil {
+		return err
+	}
+	out, err := os.Create(outputPath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	return tmpl.Execute(out, reports)
 }
 
 // LogFatalError : エラーの内容をエラーログファイルに追記する
