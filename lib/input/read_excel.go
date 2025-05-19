@@ -112,5 +112,6 @@ func ActivateOrderSheet(filePath string) error {
 	if err := f.SaveAs(filePath); err != nil {
 		return fmt.Errorf("ファイル書き込みエラー: %w\n", err)
 	}
-	return fmt.Errorf("入力Iをアクティブにして%sへ上書き保存しました。", filePath)
+	fmt.Printf("入力Iをアクティブにして%sへ上書き保存しました。", filePath)
+	return nil
 }

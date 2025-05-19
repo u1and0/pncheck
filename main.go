@@ -6,13 +6,11 @@ import (
 	"os"
 
 	"pncheck/lib"
-	"pncheck/lib/output"
 )
 
 const (
-	VERSION    = "v0.1.1r"
-	FATALLOG   = "pncheck_fatal_report.log"
-	outputPath = "pncheck_report.html"
+	VERSION    = "v1.0.0"
+	outputPath = "pncheck_report.html" // エラー出力ファイル
 )
 
 func main() {
@@ -20,7 +18,6 @@ func main() {
 	filePaths, err := lib.ParseArguments(VERSION)
 	if err != nil {
 		log.Fatalln(err)
-		output.LogFatalError(FATALLOG, err.Error())
 	}
 
 	// 各ファイルを処理
