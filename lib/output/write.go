@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
-	"time"
 )
 
 // templateFile : 出力するレポートのテンプレートファイルのパス
@@ -62,23 +61,6 @@ func (reports *Reports) Publish(outputPath string) error {
 	defer out.Close()
 
 	return tmpl.Execute(out, reports)
-}
-
-// LogFatalError : エラーの内容をエラーログファイルに追記する
-func LogFatalError(f string, msg string) error {
-	// O_APPEND: ファイルの末尾に書き込む
-	// O_CREATE: ファイルが存在しない場合は作成する
-	// O_WRONLY: 書き込み専用で開く
-	file, err := os.OpenFile(f, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	now := time.Now().Format("2006/01/02 15:04:05.000")
-	msg = fmt.Sprintf("%s: %s\n", now, msg)
-	_, err = file.WriteString(msg)
-	return err
 }
 
 // ModifyFileExt
