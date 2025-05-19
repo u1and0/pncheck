@@ -6,12 +6,11 @@ import (
 	"os"
 
 	"pncheck/lib"
-	"pncheck/lib/output"
 )
 
 const (
-	VERSION  = "v0.1.1"
-	FATALLOG = "pncheck_fatal_report.log"
+	VERSION    = "v1.0.0"
+	outputPath = "pncheck_report.html" // エラー出力ファイル
 )
 
 func main() {
@@ -19,23 +18,11 @@ func main() {
 	filePaths, err := lib.ParseArguments(VERSION)
 	if err != nil {
 		log.Fatalln(err)
-		output.LogFatalError(FATALLOG, err.Error())
 	}
 
 	// 各ファイルを処理
-	for _, filePath := range filePaths {
-		err := lib.ProcessExcelFile(filePath)
-		if err == nil {
-			continue
-		}
-
-		// JSON型ではないエラーの表示
-		// fmt.Fprintf(os.Stderr, "ファイル名:%s, pncheck %s\n", filePath, err)
-		err = output.WriteFatal(filePath, err)
-		// WriteFatalでもエラーが発生したらFATALLOGに書き込む
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			output.LogFatalError(FATALLOG, err.Error())
-		}
+	reports := lib.ProcessExcelFile(filePaths)
+	if err = reports.Publish(outputPath); err != nil {
+		fmt.Fprintf(os.Stderr, "レポートファイルの出力に失敗しました: %v\n", err)
 	}
 }

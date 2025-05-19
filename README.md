@@ -95,7 +95,7 @@ $ make SERVER_ADDRESS='http://192.168.1.2:8080'
 
 ```sh
 $ SERVER_ADDRESS='http://localhost:8080'
-$ go build -ldflags="-X pncheck/lib/input.serverAddress=${SERVER_ADDRESS}"
+$ go build -ldflags="-X pncheck/lib/input.ServerAddress=${SERVER_ADDRESS}"
 ```
 
 
@@ -105,7 +105,7 @@ $ go build -ldflags="-X pncheck/lib/input.serverAddress=${SERVER_ADDRESS}"
 あるいは以下のように、on the flyで環境変数を設定してからビルドします。
 
 ```sh
-$ GOOS=windows GOARCH=amd64 go build -ldflags="-X pncheck/lib/input.serverAddress=${SERVER_ADDRESS}"
+$ GOOS=windows GOARCH=amd64 go build -ldflags="-X pncheck/lib/input.ServerAddress=${SERVER_ADDRESS}"
 
 ```
 

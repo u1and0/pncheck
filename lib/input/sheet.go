@@ -346,3 +346,7 @@ func getCellValue(f *excelize.File, sheetName, axis string) string {
 	}
 	return strings.TrimSpace(val)
 }
+
+func BuildRequestURL(sha256 string) string {
+	return fmt.Sprintf("%s/index?hash=%s#requirement-tab", serverAddress, sha256)
+}

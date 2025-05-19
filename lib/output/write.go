@@ -1,14 +1,21 @@
 package output
 
 import (
-	"encoding/json"
+	"embed"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
+	"text/template"
 )
+
+// templateFile : 出力するレポートのテンプレートファイルのパス
+// embded するファイルパスと同じである必要がある
+const templateFile = "report.tmpl"
+
+//go:embed report.tmpl
+var templateFS embed.FS
 
 // WriteErrorToJSON writes error response to a JSON file
 func WriteErrorToJSON(jsonPath string, body []byte) error {
@@ -31,55 +38,29 @@ func WriteErrorToJSON(jsonPath string, body []byte) error {
 	return nil
 }
 
-// LogFatalError : エラーの内容をエラーログファイルに追記する
-func LogFatalError(f string, msg string) error {
-	// O_APPEND: ファイルの末尾に書き込む
-	// O_CREATE: ファイルが存在しない場合は作成する
-	// O_WRONLY: 書き込み専用で開く
-	file, err := os.OpenFile(f, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+type Report struct {
+	Filename, Link, ErrorMessage string
+	// []ErrorRecord  // TODO
+}
+
+type Reports struct {
+	ExecutionTime                                      string
+	SuccessItems, WarningItems, ErrorItems, FatalItems []Report
+}
+
+// Publish : report.tmplを基にReportsをHTMLファイルとして出力する
+func (reports *Reports) Publish(outputPath string) error {
+	tmpl, err := template.ParseFS(templateFS, templateFile)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-
-	now := time.Now().Format("2006/01/02 15:04:05.000")
-	msg = fmt.Sprintf("%s: %s\n", now, msg)
-	_, err = file.WriteString(msg)
-	return err
-}
-
-// ErrorRecord : pncheck固有のエラーをJSONファイルに書き込むための構造体
-type ErrorRecord struct {
-	Filename string `json:"ファイル名"`
-	Error    string `json:"エラー"`
-}
-
-// WriteFatal : pncheck固有のエラーがあったら 標準エラーに出力した後、
-// ファイル名ごとのJSONに書き込む
-// 引数のerrがnilの場合は何もしないで終了
-//
-// @throws JSONパースエラー
-// @throws エラーファイル '%s' の作成に失敗しました
-// @throws エラーファイル '%s' へのJSONデータ書き込みに失敗しました
-func WriteFatal(filePath string, err error) error {
-	if err == nil {
-		return nil
-	}
-	// エラーをJSONとしてパース
-	errRecord := ErrorRecord{filepath.Base(filePath), err.Error()}
-	errJSON, err := json.MarshalIndent(errRecord, "", "  ")
+	out, err := os.Create(outputPath)
 	if err != nil {
-		return fmt.Errorf("JSONパースエラー: %w", err)
+		return err
 	}
+	defer out.Close()
 
-	// JSON型エラーの表示
-	// jqでハイライトして見たいので標準出力へ
-	fmt.Println(string(errJSON))
-
-	// JSONファイルへ書き込み
-	// pncheck実行ディレクトリにJSONを配置する
-	jsonFilename := WithoutFileExt(filePath) + ".json"
-	return WriteErrorToJSON(jsonFilename, errJSON)
+	return tmpl.Execute(out, reports)
 }
 
 // ModifyFileExt
