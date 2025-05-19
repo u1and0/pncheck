@@ -15,7 +15,7 @@
 # make build SERVER_ADDRESS=http://example.com:8080
 # ```
 
-BUILD_CMD = go build -ldflags="-X pncheck/lib/input.ServerAddress=$(SERVER_ADDRESS)"
+BUILD_CMD = go build -ldflags="-X pncheck/lib/input.serverAddress=$(SERVER_ADDRESS)"
 SERVER_ADDRESS ?= http://localhost:8080
 
 all: build exe doc
