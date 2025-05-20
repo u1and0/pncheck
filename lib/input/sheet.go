@@ -70,8 +70,9 @@ var (
 type (
 	// Config : 設定スイッチ
 	Config struct {
-		Validatable bool `json:"validatable"` // trueでバリデーション、エラーチェックする
-		Sortable    bool `json:"sortable"`    // trueで印刷シートをソートする
+		Validatable  bool `json:"validatable"`  // trueでバリデーション、エラーチェックする
+		Sortable     bool `json:"sortable"`     // trueで印刷シートをソートする
+		Orverridable bool `json:"orverridable"` // trueで品名、型式、単位を自動修正する
 	}
 	// Header : リクエストヘッダー
 	Header struct {
@@ -115,7 +116,7 @@ type (
 
 func New(f string) *Sheet {
 	return &Sheet{
-		Config: Config{true, true},
+		Config: Config{true, true, true},
 		Header: Header{
 			// ディレクトリを除いたファイル名のみ+surfix _pncheck
 			// 30エラーを出さないためのダミーファイル名
