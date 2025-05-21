@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	VERSION    = "v1.0.0"
-	outputPath = "pncheck_report.html" // エラー出力ファイル
+	VERSION    = "v1.0.0r"
+	outputPath = "pncheck_reportnpu.html" // エラー出力ファイル
 )
 
 func main() {
