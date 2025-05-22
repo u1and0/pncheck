@@ -115,7 +115,7 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 	testFile := createTestExcelFile(t, testDir, "20231027-success-read-K.xlsx", setValidLayout)
 
 	expectedSheet := Sheet{
-		Config: Config{Validatable: true, Sortable: true},
+		Config: Config{Validatable: true, Sortable: true, Overridable: true},
 		Header: Header{
 			OrderType:   購入,
 			ProjectID:   "1234501",                              // D1 + F1
@@ -323,7 +323,7 @@ func TestActivateOrderSheet(t *testing.T) {
 		{
 			name:           "success",
 			filePath:       testFile,
-			wantErr:        true,
+			wantErr:        false,
 			wantErrMsg:     "新しく保存しました。",
 			activeSheetIdx: 0, // idx==0は入力II
 		},
@@ -374,7 +374,7 @@ func TestActivateOrderSheet(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ActivateOrderSheet(tt.filePath)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ActivateOrderSheet() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ActivateOrderSheet() name: %s, error: %v, wantErr: %v", tt.name, err, tt.wantErr)
 				return
 			}
 

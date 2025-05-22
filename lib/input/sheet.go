@@ -73,9 +73,9 @@ var (
 type (
 	// Config : 設定スイッチ
 	Config struct {
-		Validatable  bool `json:"validatable"`  // trueでバリデーション、エラーチェックする
-		Sortable     bool `json:"sortable"`     // trueで印刷シートをソートする
-		Orverridable bool `json:"orverridable"` // trueで品名、型式、単位を自動修正する
+		Validatable bool `json:"validatable"` // trueでバリデーション、エラーチェックする
+		Sortable    bool `json:"sortable"`    // trueで印刷シートをソートする
+		Overridable bool `json:"overridable"` // trueで品名、型式、単位を自動修正する
 	}
 	// Header : リクエストヘッダー
 	Header struct {

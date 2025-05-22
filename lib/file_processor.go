@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"pncheck/lib/api"
 	"pncheck/lib/input"
 	"pncheck/lib/output"
 )
@@ -76,7 +77,7 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 		return
 	}
 
-	resp, err := output.JsonParse(body)
+	resp, err := api.JsonParse(body)
 	if err != nil {
 		report.ErrorMessage = fmt.Sprintf("APIレスポンス解析エラー: %v", err)
 		resultChan <- report
