@@ -1,9 +1,10 @@
-package output
+package api
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"pncheck/lib/input"
 )
 
