@@ -10,9 +10,11 @@ import (
 	"text/template"
 )
 
-// templateFile : 出力するレポートのテンプレートファイルのパス
-// embded するファイルパスと同じである必要がある
-const templateFile = "report.tmpl"
+const (
+	// templateFile : 出力するレポートのテンプレートファイルのパス
+	// embded するファイルパスと同じである必要がある
+	templateFile = "report.tmpl"
+)
 
 //go:embed report.tmpl
 var templateFS embed.FS
@@ -40,7 +42,9 @@ func WriteErrorToJSON(jsonPath string, body []byte) error {
 
 type Report struct {
 	Filename, Link, ErrorMessage string
-	// []ErrorRecord  // TODO
+	StatusCode                   int
+	// []ErrorRecord  // TODO 保存しておくと後で役立つかも？
+	// Sheet // TODO 保存しておくと後で役立つかも？シートの修正とか。
 }
 
 type Reports struct {
@@ -61,6 +65,19 @@ func (reports *Reports) Publish(outputPath string) error {
 	defer out.Close()
 
 	return tmpl.Execute(out, reports)
+}
+
+// Classify : Reportに埋め込まれたHTTPステータスコードに基づいて分類
+func (reports *Reports) Classify(report Report) {
+	if report.StatusCode >= 400 && report.StatusCode < 500 {
+		reports.ErrorItems = append(reports.ErrorItems, report)
+	} else if report.StatusCode >= 300 {
+		reports.WarningItems = append(reports.WarningItems, report)
+	} else if report.StatusCode >= 200 {
+		reports.SuccessItems = append(reports.SuccessItems, report)
+	} else { // report.StatusCode >= 500  || reports.StatusCode < 200{
+		reports.FatalItems = append(reports.FatalItems, report)
+	}
 }
 
 // ModifyFileExt

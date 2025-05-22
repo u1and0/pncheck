@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -24,8 +25,10 @@ const (
 
 // 定数定義 (Excelレイアウト - requestパッケージの書き込みコードに基づく)
 const (
-	headerSheetName = "入力Ⅱ" // ヘッダー情報が主に書かれているシート名
-	orderSheetName  = "入力Ⅰ" // 明細情報が書かれているシート名 (requestパッケージの定数を使用)
+	headerSheetName = "入力Ⅱ"   // ヘッダー情報が主に書かれているシート名
+	orderSheetName  = "入力Ⅰ"   // 明細情報が書かれているシート名 (requestパッケージの定数を使用)
+	printSheetName  = "10品目用" // 1ページ目の印刷シートの名称
+	versionCell     = "AU1"   // 要求票シートのバージョンが書かれているセル
 
 	// --- Header セル位置 (入力Ⅱ) ---
 	projectIDCell   = "D1" // 製番 (親番)
@@ -72,6 +75,7 @@ type (
 	Config struct {
 		Validatable bool `json:"validatable"` // trueでバリデーション、エラーチェックする
 		Sortable    bool `json:"sortable"`    // trueで印刷シートをソートする
+		Overridable bool `json:"overridable"` // trueで品名、型式、単位を自動修正する
 	}
 	// Header : リクエストヘッダー
 	Header struct {
@@ -115,7 +119,7 @@ type (
 
 func New(f string) *Sheet {
 	return &Sheet{
-		Config: Config{true, true},
+		Config: Config{true, true, true},
 		Header: Header{
 			// ディレクトリを除いたファイル名のみ+surfix _pncheck
 			// 30エラーを出さないためのダミーファイル名
@@ -347,6 +351,17 @@ func getCellValue(f *excelize.File, sheetName, axis string) string {
 	return strings.TrimSpace(val)
 }
 
+// BuildRequestURL : ハッシュ値を基に要求票作成ページを呼び出すためのURLを返す
 func BuildRequestURL(sha256 string) string {
 	return fmt.Sprintf("%s/index?hash=%s#requirement-tab", serverAddress, sha256)
+}
+
+// GetSheetVersion : シート名: “10品目用”のセルAU1 の文字列を返す
+func GetSheetVersion(f *excelize.File) string {
+	value, err := f.GetCellValue(printSheetName, versionCell)
+	if err != nil {
+		slog.Error("Get version failed", slog.Any("msg", err.Error()))
+		return ""
+	}
+	return value
 }
