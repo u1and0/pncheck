@@ -2,8 +2,6 @@ package output
 
 import (
 	"embed"
-	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,41 +17,19 @@ const (
 //go:embed report.tmpl
 var templateFS embed.FS
 
-// WriteErrorToJSON writes error response to a JSON file
-func WriteErrorToJSON(jsonPath string, body []byte) error {
-	f, err := os.Create(jsonPath)
-	if err != nil {
-		return fmt.Errorf("エラーファイル '%s' の作成に失敗しました: %w", jsonPath, err)
-	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			// closeエラーをログに記録するか、既存のエラーに追加する
-			// 通常、書き込みエラーの方が重要なので、closeエラーは単にログに記録する
-			log.Printf("エラーファイル '%s' のクローズに失敗しました: %v", jsonPath, err)
-		}
-	}()
-
-	if _, err := f.Write(body); err != nil {
-		return fmt.Errorf("エラーファイル '%s' へのJSONデータ書き込みに失敗しました: %w", jsonPath, err)
-	}
-
-	return nil
-}
-
-// Define a custom type Status as an alias for int
-type Status int
+type StatusCode int
 
 // Define a set of status codes using iota
 const (
-	successCode Status = 200 + iota*100
-	warningCode        // 300
-	errorCode          // 400
-	fatalCode          // 500
+	successCode StatusCode = 200 + iota*100
+	warningCode            // 300
+	errorCode              // 400
+	fatalCode              // 500
 )
 
 type Report struct {
 	Filename, Link, ErrorMessage string
-	StatusCode                   Status
+	StatusCode
 	// []ErrorRecord  // TODO 保存しておくと後で役立つかも？
 	// Sheet // TODO 保存しておくと後で役立つかも？シートの修正とか。
 }

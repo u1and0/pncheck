@@ -91,7 +91,7 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 	}
 
 	report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
-	report.StatusCode = code
+	report.StatusCode = output.StatusCode(code)
 
 	if code >= 500 {
 		report.ErrorMessage = resp.Message
