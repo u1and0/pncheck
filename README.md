@@ -27,16 +27,23 @@ $ pncheck request1.xlsx request2.xlsx
 ![HTMLファイルが出力されます。エラーの内容は生成されたリンク先へ飛んでから、PNSearchの[作成内容を確認する]ボタンを押してください。](doc/screen_shot_result.png)
 
 
-### エラーの内容について
+## ☢️エラーの内容について
 
-#### PNSearch側のエラー
+### PNSearch側のエラー
 PNSearchのヘルプを確認してください。
+Errorが出たときはErrorを全て解消するまでWarningを見ることができません。
 
-#### pncheck側のエラー
-サーバー側で確認できないエラーはpncheck側で確認します。
+### pncheck側のエラー
+サーバー側で確認できないエラーはpncheck側で確認してFatalを発行します。
+そのため、PNSearch のError, Warningを確認することができません。
 
-- 入力Iがアクティブでない場合、入力Iをアクティブにして上書き保存します。
-- 
+#### 確認項目
+- Excelが読み込めない場合
+- 入力Iが納期、ソートされていない場合
+- PNSearchと通信できない場合
+- PNSearchからの応答に以上が含まれている場合
+
+ただし、入力Iがアクティブでない場合はFatalを発行せずに、入力Iを自動的にアクティブにして元のExcelファイルを上書き保存します。警告などは出ません。
 
 ## 🏗️ Build
 
