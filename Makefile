@@ -18,14 +18,16 @@
 BUILD_CMD = go build -ldflags="-X pncheck/lib/input.serverAddress=$(SERVER_ADDRESS)"
 SERVER_ADDRESS ?= http://localhost:8080
 
-all: build exe doc
+all: test build exe doc
 
-.PHONY: all build exe doc clean
+.PHONY: all build exe test doc clean
 
 build:
 	$(BUILD_CMD)
 exe:
 	GOOS=windows GOARCH=amd64 $(BUILD_CMD)
+test:
+	go test ./lib/...
 doc:
 	pandoc README.md -o README.html
 clean:
