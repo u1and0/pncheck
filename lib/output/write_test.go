@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"log"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"  // assertを使うと簡潔に書けます
@@ -42,44 +41,6 @@ func setupTestDir(t *testing.T) string {
 	})
 
 	return dir
-}
-
-func TestWriteErrorToJSON(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		testDir := setupTestDir(t)
-		jsonPath := filepath.Join(testDir, "error.json")
-		body := []byte(`{"error": "something went wrong"}`)
-
-		err := WriteErrorToJSON(jsonPath, body)
-		assert.NoError(t, err, "WriteErrorToJSON should not return an error on success")
-
-		// ファイルが存在することを確認
-		_, err = os.Stat(jsonPath)
-		assert.NoError(t, err, "JSON file should exist after writing")
-
-		// ファイル内容を確認
-		content, err := os.ReadFile(jsonPath)
-		assert.NoError(t, err, "Failed to read written file")
-		assert.Equal(t, body, content, "File content should match the provided body")
-	})
-
-	t.Run("Failure to Create Directory", func(t *testing.T) {
-		testDir := setupTestDir(t)
-		// 存在しないディレクトリを指定
-		jsonPath := filepath.Join(testDir, "nonexistent_dir", "error.json")
-		body := []byte(`{"error": "test"}`)
-
-		err := WriteErrorToJSON(jsonPath, body)
-		assert.Error(t, err, "WriteErrorToJSON should return an error when directory creation fails")
-		assert.Contains(t, err.Error(), "エラーファイル", "Error message should be in Japanese")
-		// Windowsでは"指定されたパスが見つかりません。", Linux/macOSでは"no such file or directory"などになる
-		// OS依存のため詳細なエラーメッセージは確認しないか、抽象的に確認する
-		// assert.Contains(t, err.Error(), "no such file or directory") // 例 (OS依存)
-
-		// ファイルが作成されていないことを確認 (Statはエラーになる)
-		_, err = os.Stat(jsonPath)
-		assert.True(t, os.IsNotExist(err), "JSON file should not be created")
-	})
 }
 
 func TestModifyFilePath(t *testing.T) {

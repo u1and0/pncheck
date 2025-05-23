@@ -289,6 +289,50 @@ func (o *Orders) read(f *excelize.File) error {
 	return nil
 }
 
+// CheckOrderItemsSortOrder : 注文明細の並び順チェック
+func CheckOrderItemsSortOrder(sheet Sheet) error {
+	orders := sheet.Orders
+	n := len(orders)
+
+	// 要素数が0または1の場合は常に正しい並び順とみなす
+	if n <= 1 {
+		return nil
+	}
+
+	// 各要素と次の要素のペアを比較していく
+	for i := 0; i < n-1; i++ {
+		current := orders[i]
+		next := orders[i+1]
+
+		// 比較ルール: 要望納期昇順 -> 品番昇順
+		// current が next より後に来ていたら不正
+
+		// 1. 要望納期を比較 (string型での比較)
+		// current.Deadline > next.Deadline の場合は不正
+		if current.Deadline > next.Deadline {
+			return fmt.Errorf(
+				"インデックス %d と %d で並べ替え順から外れた項目を注文しています：要望納期 '%s' は '%s' の後です。",
+				i, i+1, current.Deadline, next.Deadline,
+			)
+		}
+
+		// 2. 要望納期が同じ場合、品番を比較 (string型での比較)
+		// current.Deadline == next.Deadline かつ current.Pid > next.Pid の場合は不正
+		if current.Deadline == next.Deadline {
+			if current.Pid > next.Pid {
+				return fmt.Errorf("インデックス %d と %d で並べ替え順から外れた項目を注文しています：Pid '%s' は同じ要望納期 '%s' の '%s' の後にあります。",
+					i, i+1, current.Pid, next.Pid, current.Deadline)
+			}
+			// current.Pid <= next.Pid の場合は正しい順序、または同じ要素なのでOK
+		}
+
+		// current.Deadline < next.Deadline の場合、または current.Deadline == next.Deadline && current.Pid <= next.Pid の場合は正しい順序、次のペアへ進む
+	}
+
+	// 全てのペアの比較が完了し、不正な並び順が見つからなかった
+	return nil
+}
+
 // Sheet.Post() でサーバーへポスト
 // 戻り値はbody, code, error
 // code のデフォルト値は500
