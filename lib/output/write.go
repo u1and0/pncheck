@@ -40,9 +40,20 @@ func WriteErrorToJSON(jsonPath string, body []byte) error {
 	return nil
 }
 
+// Define a custom type Status as an alias for int
+type Status int
+
+// Define a set of status codes using iota
+const (
+	successCode Status = 200 + iota*100
+	warningCode        // 300
+	errorCode          // 400
+	fatalCode          // 500
+)
+
 type Report struct {
 	Filename, Link, ErrorMessage string
-	StatusCode                   int
+	StatusCode                   Status
 	// []ErrorRecord  // TODO 保存しておくと後で役立つかも？
 	// Sheet // TODO 保存しておくと後で役立つかも？シートの修正とか。
 }
@@ -69,13 +80,13 @@ func (reports *Reports) Publish(outputPath string) error {
 
 // Classify : Reportに埋め込まれたHTTPステータスコードに基づいて分類
 func (reports *Reports) Classify(report Report) {
-	if report.StatusCode >= 400 && report.StatusCode < 500 {
+	if report.StatusCode >= errorCode && report.StatusCode < fatalCode {
 		reports.ErrorItems = append(reports.ErrorItems, report)
-	} else if report.StatusCode >= 300 {
+	} else if report.StatusCode >= warningCode {
 		reports.WarningItems = append(reports.WarningItems, report)
-	} else if report.StatusCode >= 200 {
+	} else if report.StatusCode >= successCode {
 		reports.SuccessItems = append(reports.SuccessItems, report)
-	} else { // report.StatusCode >= 500  || reports.StatusCode < 200{
+	} else { // report.StatusCode >= fatalCode  || reports.StatusCode < successCode{
 		reports.FatalItems = append(reports.FatalItems, report)
 	}
 }
