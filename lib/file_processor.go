@@ -70,6 +70,12 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 		return
 	}
 
+	if err := input.CheckOrderItemsSortOrder(sheet); err != nil {
+		report.ErrorMessage = fmt.Sprintf("入力Iが納期と品番順にソートされていません: %v", err)
+		resultChan <- report
+		return
+	}
+
 	body, code, err := sheet.Post()
 	if err != nil {
 		report.ErrorMessage = fmt.Sprintf("API通信エラー: %v", err)
