@@ -160,7 +160,7 @@ func (h *Header) read(f *excelize.File) error {
 	// 要求元は印刷シートから読み込む
 	// printSheetName == 10品目用はエラーになり得ないのでエラーを明示的に潰す
 	if i, _ := f.GetSheetIndex(printSheetName); i < 0 {
-		// 印刷シート名が存在しなければ、入力IIの右隣のシートとする
+		// 印刷シート名が存在しない(つまりi==1)ならば、入力IIの右隣のシートとする
 		// headerSheetName == 入力IIはエラーになり得ないのでエラーを明示的に潰す
 		i, _ = f.GetSheetIndex(headerSheetName)
 		printSheetName = f.GetSheetName(i + 1)
