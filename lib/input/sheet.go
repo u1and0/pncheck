@@ -25,10 +25,9 @@ const (
 
 // 定数定義 (Excelレイアウト - requestパッケージの書き込みコードに基づく)
 const (
-	headerSheetName = "入力Ⅱ"   // ヘッダー情報が主に書かれているシート名
-	orderSheetName  = "入力Ⅰ"   // 明細情報が書かれているシート名 (requestパッケージの定数を使用)
-	printSheetName  = "10品目用" // 1ページ目の印刷シートの名称
-	versionCell     = "AU1"   // 要求票シートのバージョンが書かれているセル
+	headerSheetName = "入力Ⅱ" // ヘッダー情報が主に書かれているシート名
+	orderSheetName  = "入力Ⅰ" // 明細情報が書かれているシート名 (requestパッケージの定数を使用)
+	versionCell     = "AU1" // 要求票シートのバージョンが書かれているセル
 
 	// --- Header セル位置 (入力Ⅱ) ---
 	projectIDCell   = "D1" // 製番 (親番)
@@ -37,7 +36,7 @@ const (
 	requestDateCell = "D4" // 要求年月日
 	projectNameCell = "D5" // 製番名称
 	noteCell        = "D6" // 備考
-	// userSectionCell = "P5" // 要求元 (※要確認: 印刷シートから転記されている想定)
+	userSectionCell = "P5" // 要求元
 	// orderTypeCell   = "B2" // 発注区分 (※要確認: 書き込みコードに該当なし、テンプレート依存の可能性大)
 
 	// --- Order セル位置 (入力Ⅰ) ---
@@ -68,6 +67,7 @@ var (
 	dateLayoutSub = "01-02-06"
 	// 一つだけで十分そう？
 	// dateLayoutSub  = []string{"2006/1/2", "1/2/2006", "01-02-06"} // PNSearch規格外の日付文字列
+	printSheetName = "10品目用" // 1ページ目の印刷シートの名称
 )
 
 type (
@@ -86,9 +86,9 @@ type (
 		RequestDate string `json:"要求年月日"`
 		Deadline    string `json:"製番納期"`
 
-		FileName string `json:"ファイル名"`
-		// UserSection string `json:"要求元"`
-		Note string `json:"備考"`
+		FileName    string `json:"ファイル名"`
+		UserSection string `json:"要求元"`
+		Note        string `json:"備考"`
 	}
 	// Order : 要求票の1行
 	Order struct {
@@ -155,8 +155,17 @@ func (h *Header) read(f *excelize.File) error {
 		h.Deadline = dd
 	}
 
-	// h.UserSection = getCellValue(f, headerSheetName, userSectionCell)
 	h.Note = getCellValue(f, headerSheetName, noteCell)
+
+	// 要求元は印刷シートから読み込む
+	// printSheetName == 10品目用はエラーになり得ないのでエラーを明示的に潰す
+	if i, _ := f.GetSheetIndex(printSheetName); i < 0 {
+		// 印刷シート名が存在しなければ、入力IIの右隣のシートとする
+		// headerSheetName == 入力IIはエラーになり得ないのでエラーを明示的に潰す
+		i, _ = f.GetSheetIndex(headerSheetName)
+		printSheetName = f.GetSheetName(i + 1)
+	}
+	h.UserSection = getCellValue(f, printSheetName, userSectionCell)
 	return nil
 }
 
