@@ -159,10 +159,8 @@ details[open] summary::before { /* カスタムマーカー (開いている時)
         <ul>
           {{range .FatalItems}}
           <li>
-            {{.Filename}}
             <!-- Fatalはpncheck内部エラーなのでLinkがない -->
-            <!-- {{if .Link}}<a href="{{.Link}}" target="_blank">[エラー詳細]</a>{{end}} -->
-            {{.ErrorMessage}}
+            {{.Filename}}: {{.ErrorMessage}}
           </li>
           {{end}}
         </ul>
