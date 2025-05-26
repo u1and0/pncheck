@@ -82,8 +82,8 @@ details[open] summary::before { /* カスタムマーカー (開いている時)
 }
 .status-success summary { background-color: #e6ffed; border-left: 5px solid #2ecc71; }
 .status-warning summary { background-color: #fff9e6; border-left: 5px solid #f39c12; }
-.status-error   summary { background-color: #ffebee; border-left: 5px solid #e74c3c; }
-.status-fatal   summary { background-color: #6e6b6c; border-left: 5px solid #f0ebeb; }
+.status-error   summary { background-color: #f7cbd2; border-left: 5px solid #e74c3c; }
+.status-fatal   summary { background-color: #f0ebeb; border-left: 5px solid #6e6b6c; }
 
 .no-results {
   padding: 15px;
@@ -159,10 +159,8 @@ details[open] summary::before { /* カスタムマーカー (開いている時)
         <ul>
           {{range .FatalItems}}
           <li>
-            {{.Filename}}
             <!-- Fatalはpncheck内部エラーなのでLinkがない -->
-            <!-- {{if .Link}}<a href="{{.Link}}" target="_blank">[エラー詳細]</a>{{end}} -->
-            {{.ErrorMessage}}
+            {{.Filename}}: {{.ErrorMessage}}
           </li>
           {{end}}
         </ul>
