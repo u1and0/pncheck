@@ -1,3 +1,8 @@
+/*
+api パッケージでは、
+PNSearch APIとのAPI経由でのデータの解釈や解釈するための
+型情報をまとめています。
+*/
 package api
 
 import (
@@ -65,11 +70,7 @@ func NewErrorRecord(err error) *ErrorRecord {
 // 	return e
 // }
 
-// handleResponse processes API responses based on status code
-// codeに対する処理を分岐
-// 200台ステータスコードは何もしない
-// 300,400番台ステータスコードはファイル名.jsonにエラーの内容を書き込む
-// 500番台ステータスコードはPOSTに失敗しているので、faital_report.log にエラーを書き込み
+// JsonParse : APIレスポンスをパースして構造体へ変換する
 func JsonParse(body []byte) (*APIResponse, error) {
 	// APIレスポンス解析とエラー出力
 	if body == nil || len(body) < 1 {

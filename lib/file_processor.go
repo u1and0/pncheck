@@ -1,3 +1,9 @@
+/*
+渡されたExcelファイルパスを並列にPNSearch APIに渡して確認します。
+
+並列処理を使ってExcelをSheet型に変換し、
+PNSearch API から受け取ったJSONデータをReport型として格納します。
+*/
 package lib
 
 import (
@@ -70,7 +76,7 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 		return
 	}
 
-	if err := input.CheckOrderItemsSortOrder(sheet); err != nil {
+	if err := input.CheckOrderItemsSortOrder(sheet); err != nil { // fatalではなくerrorに加える
 		report.ErrorMessage = fmt.Sprintf("入力Iが納期と品番順にソートされていません: %v", err)
 		resultChan <- report
 		return

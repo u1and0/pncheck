@@ -1,3 +1,7 @@
+/*
+output パッケージでは、
+HTMLファイルへの出力や、ファイル拡張子の扱いを決定します。
+*/
 package output
 
 import (
@@ -17,6 +21,7 @@ const (
 //go:embed report.tmpl
 var templateFS embed.FS
 
+// StatusCode : HTTP status code 200～500番台
 type StatusCode int
 
 // Define a set of status codes using iota
@@ -27,6 +32,8 @@ const (
 	fatalCode              // 500
 )
 
+// Report : HTMLに表示するためのデータを纏めた構造体
+// ファイル名やPNSearch表示用URLをまとめた構造体
 type Report struct {
 	Filename, Link, ErrorMessage string
 	StatusCode
@@ -34,6 +41,7 @@ type Report struct {
 	// Sheet // TODO 保存しておくと後で役立つかも？シートの修正とか。
 }
 
+// Reports : 各Report をステータスコードによって分類し、実行時間を格納しておく構造体
 type Reports struct {
 	ExecutionTime                                      string
 	SuccessItems, WarningItems, ErrorItems, FatalItems []Report
