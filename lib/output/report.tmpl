@@ -145,6 +145,7 @@ details[open] summary::before { /* カスタムマーカー (開いている時)
           <li>
             {{.Filename}}
             {{if .Link}}<a href="{{.Link}}" target="_blank">[エラー詳細]</a>{{end}}
+            {{if .ErrorMessage}} {{.ErrorMessage}} {{end}}
           </li>
           {{end}}
         </ul>

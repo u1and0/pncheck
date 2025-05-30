@@ -1,3 +1,12 @@
+/*
+inputパッケージでは エクセルファイルの読込みを主に担当します。
+
+- read_excel.go : excelファイルの読み込み関連モジュール
+
+- order.go : 発注区分の決定をサポートします。
+
+- sheet.go : ExcelのデータをPNSearch APIへ送るのに適したJSON型 Sheet構造体へ変換します。
+*/
 package input
 
 import (
