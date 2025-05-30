@@ -76,12 +76,6 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 		return
 	}
 
-	if err := input.CheckOrderItemsSortOrder(sheet); err != nil { // fatalではなくerrorに加える
-		report.ErrorMessage = fmt.Sprintf("入力Iが納期と品番順にソートされていません: %v", err)
-		resultChan <- report
-		return
-	}
-
 	body, code, err := sheet.Post()
 	if err != nil {
 		report.ErrorMessage = fmt.Sprintf("API通信エラー: %v", err)
@@ -96,8 +90,14 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 		return
 	}
 
+	if err := input.CheckOrderItemsSortOrder(sheet); err != nil {
+		report.StatusCode = 400
+		report.ErrorMessage = fmt.Sprintf("入力Iが納期と品番順にソートされていません: %v", err)
+	} else {
+		report.StatusCode = output.StatusCode(code)
+	}
+
 	report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
-	report.StatusCode = output.StatusCode(code)
 
 	if code >= 500 {
 		report.ErrorMessage = resp.Message
