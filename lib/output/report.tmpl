@@ -24,8 +24,8 @@ body {
   font-size: 1.8em;
   color: #2c3e50;
 }
-.execution-time {
-  font-size: 0.9em;
+.info-bar {
+  font-size: 0.7em;
   color: #7f8c8d;
 }
 details {
@@ -98,8 +98,9 @@ details[open] summary::before { /* カスタムマーカー (開いている時)
   <body>
     <div class="header">
       <h1>pncheck result</h1>
-      <div class="execution-time">
-        出力日時: {{.ExecutionTime}}
+      <div class="info-bar">
+        <p>バージョン: {{.Version}}</p>
+        <p>出力日時: {{.ExecutionTime}}</p>
       </div>
     </div>
 

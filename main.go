@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"pncheck/lib"
 )
@@ -22,6 +23,9 @@ func main() {
 
 	// 各ファイルを処理
 	reports := lib.ProcessExcelFile(filePaths)
+	reports.Version = VERSION
+	reports.ExecutionTime = time.Now().Format("2006/01/02 15:04:05")
+
 	if err = reports.Publish(outputPath); err != nil {
 		fmt.Fprintf(os.Stderr, "レポートファイルの出力に失敗しました: %v\n", err)
 	}
