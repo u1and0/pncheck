@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"sync"
-	"time"
 
 	"pncheck/lib/api"
 	"pncheck/lib/input"
@@ -19,10 +18,7 @@ import (
 )
 
 // ProcessExcelFile は、複数のExcelファイルを並列に処理し、その結果を返します。
-func ProcessExcelFile(filePaths []string) output.Reports {
-	var reports output.Reports
-	reports.ExecutionTime = time.Now().Format("2006/01/02 15:04:05")
-
+func ProcessExcelFile(filePaths []string) (reports output.Reports) {
 	fileChan := make(chan string, len(filePaths))
 	for _, filePath := range filePaths {
 		fileChan <- filePath
@@ -56,7 +52,7 @@ func ProcessExcelFile(filePaths []string) output.Reports {
 		reports.Classify(result)
 	}
 
-	return reports
+	return
 }
 
 func processFile(filePath string, resultChan chan<- output.Report) {
