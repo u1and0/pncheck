@@ -27,8 +27,11 @@ jobs:
         run: go fmt **/*.go
       - name: Run tests
         run: go test ./lib/...
+      - name: Build tests
+        run: go build -n
 
   build-linux:
+    name: build linux binary
     runs-on: ubuntu-latest
     needs: test-linux
     steps:
