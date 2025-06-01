@@ -1,0 +1,97 @@
+name: Build and Test
+
+on:
+  push:
+    branches:
+      - develop
+      - release
+      - main
+
+env:
+  GO_VERSION: 1.24.2
+
+jobs:
+  test-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run tests
+        run: |
+          go test ./lib/...
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run tests
+        run: |
+          go test ./lib/...
+
+      - name: Build
+        run: go build
+
+  release-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run tests
+        run: |
+          go test ./lib/...
+
+      - name: Build
+        run: go build
+
+  main-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run tests
+        run: |
+          go test ./lib/...
+
+      - name: Build
+        run: go build
+
+      - name: Build Windows Executable
+        run: |
+          GOOS=windows GOARCH=amd64 go build
+        # アーティファクトをアップロード
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-executable
+          path: pncheck.exe
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: pncheck
+
