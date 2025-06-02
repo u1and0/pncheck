@@ -59,6 +59,9 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 	var report output.Report
 	report.Filename = filepath.Base(filePath)
 
+	// 1回目のPOSTは
+	// オーバーライドを無効、バリデーションを有効にして
+	// エラーを観測する
 	sheet, err := input.ReadExcelToSheet(filePath)
 	if err != nil {
 		report.ErrorMessage = fmt.Sprintf("Excel読み込みエラー: %v", err)
@@ -94,9 +97,27 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 	}
 
 	report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
-
 	if code >= 500 {
 		report.ErrorMessage = resp.Message
+	} else if code >= 400 {
+		// 1回目POSTの結果を保存
+		resultChan <- report
+
+		// httpステータス400以上でエラーが含まれる場合は
+		// ワーニングを表示したいので
+		// オーバーライドを有効、 バリデーションを無効にして
+		// 2回目のPOSTを実行
+		sheet.Config.Overridable = true
+		sheet.Config.Validatable = false
+		body, code, _ := sheet.Post()
+		resp, err := api.JsonParse(body)
+		if err != nil {
+			report.ErrorMessage = fmt.Sprintf("APIレスポンス解析エラー: %v", err)
+			resultChan <- report
+			return
+		}
+		report.StatusCode = output.StatusCode(code)
+		report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
 	}
 	resultChan <- report
 }

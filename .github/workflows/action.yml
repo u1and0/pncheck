@@ -6,6 +6,9 @@ on:
       - develop
       - release
       - main
+    paths:
+      - "**/*.go"
+      - ".github/workflows/action.yml"
 
 env:
   GO_VERSION: 1.24.2
