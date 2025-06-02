@@ -96,11 +96,13 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 		report.StatusCode = output.StatusCode(code)
 	}
 
-	report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
-
 	if code >= 500 {
 		report.ErrorMessage = resp.Message
 	} else if code >= 400 {
+		// 1回目POSTの結果を保存
+		report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
+		resultChan <- report
+
 		// httpステータス400以上でエラーが含まれる場合は
 		// ワーニングを表示したいので
 		// オーバーライドを有効、 バリデーションを無効にして
