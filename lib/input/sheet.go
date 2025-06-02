@@ -119,7 +119,7 @@ type (
 
 func New(f string) *Sheet {
 	return &Sheet{
-		Config: Config{true, true, true},
+		Config: Config{true, true, false}, // 初期値はOverridableを実行しない
 		Header: Header{
 			// ディレクトリを除いたファイル名のみ+surfix _pncheck
 			// 30エラーを出さないためのダミーファイル名
