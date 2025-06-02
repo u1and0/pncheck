@@ -41,7 +41,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: Build
-        run: go build
+        run: make build
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -61,8 +61,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: Build
-        run: |
-          GOOS=windows GOARCH=amd64 go build
+        run: make exe
       - name: Upload windows exe
         uses: actions/upload-artifact@v4
         with:
