@@ -10,8 +10,12 @@ import (
 )
 
 const (
-	VERSION    = "v1.3.0"
+	VERSION    = "v1.3.1"
 	outputPath = "pncheck_report.html" // エラー出力ファイル
+)
+
+var (
+	BuildTime string
 )
 
 func main() {
@@ -24,6 +28,7 @@ func main() {
 	// 各ファイルを処理
 	reports := lib.ProcessExcelFile(filePaths)
 	reports.Version = VERSION
+	reports.BuildTime = BuildTime
 	reports.ExecutionTime = time.Now().Format("2006/01/02 15:04:05")
 
 	if err = reports.Publish(outputPath); err != nil {
