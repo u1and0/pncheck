@@ -104,32 +104,17 @@ details[open] summary::before { /* カスタムマーカー (開いている時)
       </div>
     </div>
 
-    {{if or .SuccessItems .WarningItems .ErrorItems .FatalItems}}
-    {{if .SuccessItems}}
-    <details class="status-success">
-      <summary>Success ({{len .SuccessItems}}件)</summary>
-      <div class="details-content">
-        <ul>
-          {{range .SuccessItems}}
-          <li>
-            {{.Filename}}
-            {{if .Link}}<a href="{{.Link}}" target="_blank">[確認]</a>{{end}}
-          </li>
-          {{end}}
-        </ul>
-      </div>
-    </details>
-    {{end}}
+    {{if or .FatalItems .ErrorItems .WarningItems .SuccessItems }}
 
-    {{if .WarningItems}}
-    <details class="status-warning">
-      <summary>Warning ({{len .WarningItems}}件)</summary>
+    {{if .FatalItems}}
+    <details class="status-fatal">
+      <summary>Fatal ({{len .FatalItems}}件)</summary>
       <div class="details-content">
         <ul>
-          {{range .WarningItems}}
+          {{range .FatalItems}}
           <li>
-            {{.Filename}}
-            {{if .Link}}<a href="{{.Link}}" target="_blank">[エラー詳細]</a>{{end}}
+            <!-- Fatalはpncheck内部エラーなのでLinkがない -->
+            {{.Filename}}: {{.ErrorMessage}}
           </li>
           {{end}}
         </ul>
@@ -154,21 +139,38 @@ details[open] summary::before { /* カスタムマーカー (開いている時)
     </details>
     {{end}}
 
-    {{if .FatalItems}}
-    <details class="status-fatal">
-      <summary>Fatal ({{len .FatalItems}}件)</summary>
+    {{if .WarningItems}}
+    <details class="status-warning">
+      <summary>Warning ({{len .WarningItems}}件)</summary>
       <div class="details-content">
         <ul>
-          {{range .FatalItems}}
+          {{range .WarningItems}}
           <li>
-            <!-- Fatalはpncheck内部エラーなのでLinkがない -->
-            {{.Filename}}: {{.ErrorMessage}}
+            {{.Filename}}
+            {{if .Link}}<a href="{{.Link}}" target="_blank">[エラー詳細]</a>{{end}}
           </li>
           {{end}}
         </ul>
       </div>
     </details>
     {{end}}
+
+    {{if .SuccessItems}}
+    <details class="status-success">
+      <summary>Success ({{len .SuccessItems}}件)</summary>
+      <div class="details-content">
+        <ul>
+          {{range .SuccessItems}}
+          <li>
+            {{.Filename}}
+            {{if .Link}}<a href="{{.Link}}" target="_blank">[確認]</a>{{end}}
+          </li>
+          {{end}}
+        </ul>
+      </div>
+    </details>
+    {{end}}
+
     {{else}}
     <div class="no-results">
       <p>処理対象のファイル、または結果はありませんでした。</p>
