@@ -116,6 +116,11 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 			resultChan <- report
 			return
 		}
+
+		// レスポンスがワーニングでなければ何もせずに終了
+		if code < 300 {
+			return
+		}
 		report.StatusCode = output.StatusCode(code)
 		report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
 	}
