@@ -43,31 +43,13 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-      - name: Build
-        run: go build
+      - name: Linux & Windows build
+        run: make build exe doc
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-build
-          path: pncheck
-
-  build-windows:
-    name: Build windows exe
-    runs-on: windows-latest
-    needs: test-linux
-    if: github.ref_name == 'main'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: Build
-        run: |
-          GOOS=windows GOARCH=amd64 go build
-      - name: Upload windows exe
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-executable
-          path: pncheck.exe
+          name: pncheck
+          path: |
+            pncheck
+            pncheck.exe
+            README.html
