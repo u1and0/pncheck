@@ -334,7 +334,7 @@ func CheckOrderItemsSortOrder(sheet Sheet) error {
 		// current.Deadline == next.Deadline かつ current.Pid > next.Pid の場合は不正
 		if current.Deadline == next.Deadline {
 			if current.Pid > next.Pid {
-				return fmt.Errorf("インデックス %d と %d で並べ替え順から外れた項目を注文しています：Pid '%s' は同じ要望納期 '%s' の '%s' の後にあります。",
+				return fmt.Errorf("インデックス %d と %d で並べ替え順から外れた項目を注文しています：品番 '%s' は同じ要望納期 '%s' の '%s' の後にあります。",
 					i, i+1, current.Pid, next.Pid, current.Deadline)
 			}
 			// current.Pid <= next.Pid の場合は正しい順序、または同じ要素なのでOK
