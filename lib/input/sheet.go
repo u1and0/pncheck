@@ -311,7 +311,7 @@ func (o *Orders) read(f *excelize.File) error {
 }
 
 // CheckOrderItemsSortOrder : 注文明細の並び順チェック
-func CheckOrderItemsSortOrder(sheet Sheet) error {
+func CheckOrderItemsSortOrder(sheet *Sheet) error {
 	orders := sheet.Orders
 	n := len(orders)
 
