@@ -10,7 +10,7 @@ func TestNew(t *testing.T) {
 	filePath := "20220101-12345678-TBD-K.xlsx"
 	actual := New(filePath)
 	expected := Sheet{
-		Config: Config{true, true, false},
+		Config: Config{true, true, true},
 		Header: Header{
 			FileName:  "pncheck_" + filePath,
 			OrderType: 購入,

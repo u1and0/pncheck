@@ -21,13 +21,15 @@ const (
 	dateLayout = "2006/01/02"
 	// APIのエンドポイントパス
 	apiEndpointPath = "/api/v1/requests/confirm"
+	// サーバーの要求票バージョン取得AP
+	apiVersionEndpointPath = "/api/v1/requests/version"
 )
 
 // 定数定義 (Excelレイアウト - requestパッケージの書き込みコードに基づく)
 const (
 	headerSheetName = "入力Ⅱ" // ヘッダー情報が主に書かれているシート名
 	orderSheetName  = "入力Ⅰ" // 明細情報が書かれているシート名 (requestパッケージの定数を使用)
-	versionCell     = "AU1" // 要求票シートのバージョンが書かれているセル
+	versionCell     = "AV1" // 要求票シートのバージョンが書かれているセル
 
 	// --- Header セル位置 (入力Ⅱ) ---
 	projectIDCell   = "D1" // 製番 (親番)
@@ -113,11 +115,16 @@ type (
 		Header `json:"header"`
 		Orders `json:"orders"`
 	}
+
+	// ServerVersionResponse はサーバーから返されるバージョン情報のJSON構造を定義します。
+	ServerVersionResponse struct {
+		SheetVersion string `json:"sheetVersion"`
+	}
 )
 
 func New(f string) *Sheet {
 	return &Sheet{
-		Config: Config{true, true, false}, // 初期値はOverridableを実行しない
+		Config: Config{true, true, true},
 		Header: Header{
 			// ディレクトリを除いたファイル名のみ+surfix _pncheck
 			// 30エラーを出さないためのダミーファイル名
@@ -414,12 +421,107 @@ func BuildRequestURL(sha256 string) string {
 	return fmt.Sprintf("%s/index?hash=%s#requirement-tab", serverAddress, sha256)
 }
 
-// GetSheetVersion : シート名: “10品目用”のセルAU1 の文字列を返す
-func GetSheetVersion(f *excelize.File) string {
-	value, err := f.GetCellValue(printSheetName, versionCell)
+// CheckSheetVersion : 要求票の版番号確認を行う
+// localSheetVersion は開いているExcelファイルから読み取ったシートのバージョンです。
+// この関数は、サーバーから最新のシートバージョンを取得し、localSheetVersion と比較します。
+// バージョンが一致しない場合、エラーを返します。
+//
+// 要求票の版番号の確認はサーバーへ GETメソッド
+// http://192.168.160.118:9000/api/v1/requests/version
+//
+// 想定されるレスポンス:
+// {"sheetVersion":"M-0-814-04"}
+func CheckSheetVersion(filePath string) error {
+	f, err := excelize.OpenFile(filePath)
 	if err != nil {
-		slog.Error("Get version failed", slog.Any("msg", err.Error()))
-		return ""
+		return fmt.Errorf("ファイルを開けません '%s': %w\n", filePath, err)
 	}
-	return value
+	defer f.Close()
+
+	// ローカルシートのバージョンを取得
+	lv, err := f.GetCellValue(printSheetName, versionCell)
+	localSheetVersion := strings.TrimSpace(lv)
+	if err != nil || localSheetVersion == "" {
+		// FIXME 古いテンプレートだとこのセル
+		lv, err = f.GetCellValue(printSheetName, "AU1")
+		localSheetVersion = strings.TrimSpace(lv)
+		if localSheetVersion == "" {
+			slog.Warn(
+				"ローカルシートのバージョンが空文字列です。サーバーと比較できません。",
+				slog.String("version_cell", versionCell),
+			)
+			return fmt.Errorf(
+				"要求票ファイルからバージョン情報を読み取れませんでした。"+
+					"セル'%s' が空か存在しない可能性があります。",
+				versionCell,
+			)
+		}
+	}
+
+	// サーバーテンプレートのバージョンを取得
+	if serverAddress == "" {
+		// ビルド時に serverAddress が設定されていない場合は致命的エラー
+		log.Fatalln(
+			`APIサーバーアドレスが空です。ビルド時に設定する必要があります。
+$ go build -ldflags="-X pncheck/lib/input.serverAddress=http://localhost:8080"`,
+		)
+	}
+
+	apiURL := serverAddress + apiVersionEndpointPath
+	client := &http.Client{Timeout: defaultTimeout}
+
+	req, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		return fmt.Errorf("HTTPリクエストの作成に失敗しました (%s): %w", apiURL, err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("APIへのリクエスト送信に失敗しました (%s): %w", apiURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body) // エラーボディも読み込んでログに含める
+		return fmt.Errorf(
+			"サーバーからのバージョン取得に失敗しました。ステータスコード: %d, レスポンス: %s",
+			resp.StatusCode,
+			string(bodyBytes),
+		)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("APIレスポンスボディの読み込みに失敗しました: %w", err)
+	}
+
+	var serverResp ServerVersionResponse
+	if err := json.Unmarshal(body, &serverResp); err != nil {
+		return fmt.Errorf("サーバー応答のJSON解析に失敗しました: %w, レスポンス: %s",
+			err, string(body))
+	}
+
+	serverSheetVersion := serverResp.SheetVersion
+
+	// バージョンが空文字列の場合の警告（サーバー側またはローカル側）
+	if localSheetVersion == "" {
+		slog.Warn("ローカルシートのバージョンが空です。サーバーと比較できません。")
+	}
+	if serverSheetVersion == "" {
+		slog.Warn("サーバーからのシートバージョンが空です。比較に失敗しました。", slog.
+			String("apiURL", apiURL))
+		// サーバーのバージョンが空の場合、有効なバージョンではないとみなしエラーを返す
+		return fmt.Errorf("サーバーから有効なシートバージョンが取得できませんでした。")
+	}
+
+	// バージョンの比較
+	if localSheetVersion != serverSheetVersion {
+		return fmt.Errorf(
+			"要求票のバージョンが一致しません。"+
+				"ローカル: '%s', サーバー: %s' です。"+
+				"最新の要求票テンプレートをご利用ください。",
+			localSheetVersion, serverSheetVersion,
+		)
+	}
+	return nil
 }
