@@ -31,7 +31,7 @@
         {{if .FatalItems}}
         <div class="accordion-item">
           <h2 class="accordion-header" id="fatalHeader">
-            <button class="accordion-button bg-danger text-white" type="button" data-bs-toggle="collapse" data-bs-target="#fatalCollapse" aria-expanded="true" aria-controls="fatalCollapse">
+            <button class="accordion-button bg-secondary text-white" type="button" data-bs-toggle="collapse" data-bs-target="#fatalCollapse" aria-expanded="true" aria-controls="fatalCollapse">
               Fatal ({{len .FatalItems}}件)
             </button>
           </h2>
@@ -44,7 +44,7 @@
                     <summary class="details-summary fw-bold">{{.Filename}}</summary>
                     <ul class="list-group list-group-flush mt-2">
                       {{range .ErrorMessages}}
-                      <li class="list-group-item list-group-item-danger">{{.}}</li>
+                      <li class="list-group-item list-group-item-secondary">{{.}}</li>
                       {{end}}
                     </ul>
                   </details>
@@ -59,7 +59,7 @@
         {{if .ErrorItems}}
         <div class="accordion-item">
           <h2 class="accordion-header" id="errorHeader">
-            <button class="accordion-button bg-warning" type="button" data-bs-toggle="collapse" data-bs-target="#errorCollapse" aria-expanded="true" aria-controls="errorCollapse">
+            <button class="accordion-button bg-danger text-white" type="button" data-bs-toggle="collapse" data-bs-target="#errorCollapse" aria-expanded="true" aria-controls="errorCollapse">
               Error ({{len .ErrorItems}}件)
             </button>
           </h2>
@@ -75,7 +75,7 @@
                     </summary>
                     <ul class="list-group list-group-flush mt-2">
                       {{range .ErrorMessages}}
-                      <li class="list-group-item list-group-item-warning">{{.}}</li>
+                      <li class="list-group-item list-group-item-danger">{{.}}</li>
                       {{end}}
                     </ul>
                   </details>
@@ -90,7 +90,7 @@
         {{if .WarningItems}}
         <div class="accordion-item">
           <h2 class="accordion-header" id="warningHeader">
-            <button class="accordion-button bg-info" type="button" data-bs-toggle="collapse" data-bs-target="#warningCollapse" aria-expanded="true" aria-controls="warningCollapse">
+            <button class="accordion-button bg-warning" type="button" data-bs-toggle="collapse" data-bs-target="#warningCollapse" aria-expanded="true" aria-controls="warningCollapse">
               Warning ({{len .WarningItems}}件)
             </button>
           </h2>
@@ -102,11 +102,11 @@
                    <details>
                     <summary class="details-summary d-flex justify-content-between align-items-start">
                       <span class="fw-bold">{{.Filename}}</span>
-                      {{if .Link}}<a href="{{.Link}}" class="badge bg-info text-dark text-decoration-none" target="_blank">ワーニング詳細</a>{{end}}
+                      {{if .Link}}<a href="{{.Link}}" class="badge bg-warning text-dark text-decoration-none" target="_blank">ワーニング詳細</a>{{end}}
                     </summary>
                     <ul class="list-group list-group-flush mt-2">
                       {{range .ErrorMessages}}
-                      <li class="list-group-item list-group-item-info">{{.}}</li>
+                      <li class="list-group-item list-group-item-warning">{{.}}</li>
                       {{end}}
                     </ul>
                   </details>

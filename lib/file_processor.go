@@ -65,7 +65,7 @@ func formatErrorMessage(e api.ErrorRecord) string {
 
 	var locationParts []string
 	if e.Index != nil {
-		locationParts = append(locationParts, fmt.Sprintf("%d行目", *e.Index))
+		locationParts = append(locationParts, fmt.Sprintf("%d行目", *e.Index+1))
 	}
 	if e.Key != "" {
 		locationParts = append(locationParts, e.Key)
@@ -142,11 +142,6 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 		report.ErrorMessages = append(report.ErrorMessages, formatErrorMessage(e))
 	}
 
-	// ローカルでの検証エラーがなく、APIからもエラーがなければ、APIのステータスコードを正式なものとして採用
-	if len(report.ErrorMessages) == 0 {
-		report.StatusCode = output.StatusCode(code)
-	}
-
 	report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
 
 	// APIエラー(400番台)があり、エラーメッセージが記録されている場合、オーバーライドを試みる
@@ -162,6 +157,11 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 			if err != nil {
 				report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("APIレスポンス解析エラー(2回目): %v", err))
 			} else {
+				// 2回目のPOSTでWarningになった場合、ステータスを更新する
+				if code2 >= 300 && code2 < 400 {
+					report.StatusCode = output.StatusCode(code2)
+				}
+
 				// リンクをオーバーライド後のものに更新
 				report.Link = input.BuildRequestURL(resp2.PNResponse.SHA256)
 
@@ -176,6 +176,11 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 				}
 			}
 		}
+	}
+
+	// 全てのエラーチェックが終わった後、エラーメッセージがなければAPIのコードを最終ステータスとする
+	if len(report.ErrorMessages) == 0 {
+		report.StatusCode = output.StatusCode(code)
 	}
 
 	resultChan <- report
