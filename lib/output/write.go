@@ -71,7 +71,7 @@ func (reports *Reports) Classify(report Report) {
 		reports.WarningItems = append(reports.WarningItems, report)
 	} else if report.StatusCode >= successCode {
 		reports.SuccessItems = append(reports.SuccessItems, report)
-	} else { // report.StatusCode >= fatalCode  || reports.StatusCode < successCode{
+	} else { // ステータス200未満、つまり初期値(0)のまま場合、あるいは500以上
 		reports.FatalItems = append(reports.FatalItems, report)
 	}
 }
