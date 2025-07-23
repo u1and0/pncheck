@@ -59,15 +59,16 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 	var report output.Report
 	report.Filename = filepath.Base(filePath)
 
+	// ローカルエラーなのでステータスコード0(初期値)
 	sheet, err := input.ReadExcelToSheet(filePath)
 	if err != nil {
-		report.ErrorMessage = fmt.Sprintf("Excel読み込みエラー: %v", err)
+		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("Excel読み込みエラー: %v", err))
 		resultChan <- report
 		return
 	}
 
 	if err := input.ActivateOrderSheet(filePath); err != nil {
-		report.ErrorMessage = fmt.Sprintf("入力Iのアクティベーションエラー: %v", err)
+		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("入力Iのアクティベーションエラー: %v", err))
 		resultChan <- report
 		return
 	}
@@ -79,14 +80,16 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 	sheet.Config.Overridable = false
 	body, code, err := sheet.Post()
 	if err != nil {
-		report.ErrorMessage = fmt.Sprintf("API通信エラー: %v", err)
+		report.StatusCode = 500 // API通信自体が失敗した場合はFatal
+		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("API通信エラー: %v", err))
 		resultChan <- report
 		return
 	}
 
 	resp, err := api.JsonParse(body)
 	if err != nil {
-		report.ErrorMessage = fmt.Sprintf("APIレスポンス解析エラー: %v", err)
+		report.StatusCode = 500 // レスポンス解析エラーもFatal
+		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("APIレスポンス解析エラー: %v", err))
 		resultChan <- report
 		return
 	}
@@ -94,45 +97,46 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 	// APIによる確認後の処理
 	if err := input.CheckSheetVersion(filePath); err != nil {
 		report.StatusCode = 400
-		report.ErrorMessage = fmt.Sprintf("要求票の版番号の確認: %s", err)
-	} else {
-		report.StatusCode = output.StatusCode(code)
+		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("要求票の版番号の確認: %s", err))
 	}
 
 	if err := input.CheckOrderItemsSortOrder(sheet); err != nil {
 		report.StatusCode = 400
-		report.ErrorMessage = fmt.Sprintf("入力Iが納期と品番順にソートされていません: %v", err)
-	} else {
+		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("入力Iが納期と品番順にソートされていません: %v", err))
+	}
+
+	// APIからのエラーメッセージを追加
+	if resp.Message != "" && code >= 400 {
+		report.StatusCode = 400
+		report.ErrorMessages = append(report.ErrorMessages, resp.Message)
+	}
+
+	// ローカルでの検証エラーがなく、APIからもエラーがなければ、APIのステータスコードを正式なものとして採用
+	if len(report.ErrorMessages) == 0 {
 		report.StatusCode = output.StatusCode(code)
 	}
 
 	report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
-	if code >= 500 {
-		report.ErrorMessage = resp.Message
-	} else if code >= 400 {
-		// 1回目POSTの結果を保存
-		resultChan <- report
 
-		// 2回目のPOSTを実行
-		// httpステータス400以上でエラーが含まれる場合は
-		// ワーニングを表示したいので
-		// オーバーライドを有効、 バリデーションを無効にして
+	// APIエラー(400番台)があり、かつローカル検証エラーがなかった場合のみ、
+	// オーバーライドを試みる
+	if code >= 400 && code < 500 && len(report.ErrorMessages) > 0 {
+		// 2回目のPOSTを実行し、オーバーライドされた結果のリンクを取得する
 		sheet.Config.Overridable = true
 		sheet.Config.Validatable = false
-		body, code, _ := sheet.Post()
-		resp, err := api.JsonParse(body)
+		body, _, err := sheet.Post() // 2回目のcodeはここでは不要
 		if err != nil {
-			report.ErrorMessage = fmt.Sprintf("APIレスポンス解析エラー: %v", err)
-			resultChan <- report
-			return
+			report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("APIレスポンス解析エラー(2回目): %v", err))
+		} else {
+			resp, err := api.JsonParse(body)
+			if err != nil {
+				report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("APIレスポンス解析エラー(2回目): %v", err))
+			} else {
+				// リンクをオーバーライド後のものに更新
+				report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
+			}
 		}
-
-		// レスポンスがワーニングでなければ何もせずに終了
-		if code < 300 {
-			return
-		}
-		report.StatusCode = output.StatusCode(code)
-		report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
 	}
+
 	resultChan <- report
 }

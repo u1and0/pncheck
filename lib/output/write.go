@@ -35,7 +35,8 @@ const (
 // Report : HTMLに表示するためのデータを纏めた構造体
 // ファイル名やPNSearch表示用URLをまとめた構造体
 type Report struct {
-	Filename, Link, ErrorMessage string
+	Filename, Link string
+	ErrorMessages  []string
 	StatusCode
 	// []ErrorRecord  // TODO 保存しておくと後で役立つかも？
 	// Sheet // TODO 保存しておくと後で役立つかも？シートの修正とか。
