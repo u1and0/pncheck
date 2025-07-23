@@ -82,41 +82,38 @@ func formatErrorMessage(e api.ErrorRecord) string {
 }
 
 // collectValidationErrors はローカルとAPIの一次検証エラーを収集します
-func collectValidationErrors(report *output.Report, filePath string, sheet *input.Sheet, resp *api.APIResponse, code int) {
+func collectValidationErrors(filePath string, sheet *input.Sheet, resp *api.APIResponse, code int) (errs []string) {
 	// ローカルでの検証
 	if err := input.CheckSheetVersion(filePath); err != nil {
-		report.StatusCode = 400
-		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("要求票の版番号の確認: %s", err))
+		errs = append(errs, fmt.Sprintf("要求票の版番号の確認: %s", err))
 	}
 	if err := input.CheckOrderItemsSortOrder(sheet); err != nil {
-		report.StatusCode = 400
-		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("入力Iが納期と品番順にソートされていません: %v", err))
+		errs = append(errs, fmt.Sprintf("入力Iが納期と品番順にソートされていません: %v", err))
 	}
 
 	// APIからのエラー
 	if resp.Message != "" && code >= 400 {
-		report.StatusCode = 400
-		report.ErrorMessages = append(report.ErrorMessages, resp.Message)
+		errs = append(errs, resp.Message)
 	}
 	for _, e := range resp.PNResponse.Error {
-		report.StatusCode = 400
-		report.ErrorMessages = append(report.ErrorMessages, formatErrorMessage(e))
+		errs = append(errs, formatErrorMessage(e))
 	}
+	return
 }
 
 // handleOverridePost はエラー時のオーバーライドPOST処理を実行します
-func handleOverridePost(report *output.Report, sheet *input.Sheet) {
+func handleOverridePost(report *output.Report, sheet *input.Sheet) (errs []string) {
 	sheet.Config.Overridable = true
 	sheet.Config.Validatable = false
 	body, code, err := sheet.Post()
 	if err != nil {
-		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("API通信エラー(2回目): %v", err))
+		errs = append(errs, fmt.Sprintf("API通信エラー(2回目): %v", err))
 		return
 	}
 
 	resp, err := api.JsonParse(body)
 	if err != nil {
-		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("APIレスポンス解析エラー(2回目): %v", err))
+		errs = append(errs, fmt.Sprintf("APIレスポンス解析エラー(2回目): %v", err))
 		return
 	}
 
@@ -127,12 +124,13 @@ func handleOverridePost(report *output.Report, sheet *input.Sheet) {
 	if code >= 300 && code < 400 {
 		report.StatusCode = output.StatusCode(code)
 		if resp.Message != "" {
-			report.ErrorMessages = append(report.ErrorMessages, resp.Message)
+			errs = append(errs, resp.Message)
 		}
 		for _, e := range resp.PNResponse.Error {
-			report.ErrorMessages = append(report.ErrorMessages, formatErrorMessage(e))
+			errs = append(errs, formatErrorMessage(e))
 		}
 	}
+	return
 }
 
 func processFile(filePath string, resultChan chan<- output.Report) {
@@ -172,12 +170,18 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 	}
 
 	// 3. エラー収集
-	collectValidationErrors(&report, filePath, &sheet, resp, code)
-	report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
+	errs := collectValidationErrors(filePath, &sheet, resp, code)
+	if code >= 400 && code < 500 && len(errs) > 0 {
+		report.StatusCode = output.StatusCode(code)
+		report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
+		report.ErrorMessages = errs
+		resultChan <- report
 
-	// 4. 必要に応じて2回目のPOST (オーバーライド)
-	if code >= 400 && code < 500 && len(report.ErrorMessages) > 0 {
-		handleOverridePost(&report, &sheet)
+	} else if code > 300 {
+		report.StatusCode = output.StatusCode(code)
+		// 4. 必要に応じて2回目のPOST (オーバーライド)
+		errs := handleOverridePost(&report, &sheet)
+		report.ErrorMessages = errs
 	}
 
 	// 5. 最終的なステータスコードの決定
