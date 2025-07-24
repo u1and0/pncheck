@@ -65,7 +65,7 @@ func formatErrorMessage(e api.ErrorRecord) string {
 
 	var locationParts []string
 	if e.Index != nil {
-		locationParts = append(locationParts, fmt.Sprintf("%d行目", *e.Index))
+		locationParts = append(locationParts, fmt.Sprintf("%d行目", *e.Index+1))
 	}
 	if e.Key != "" {
 		locationParts = append(locationParts, e.Key)
@@ -139,12 +139,14 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 
 	sheet, err := input.ReadExcelToSheet(filePath)
 	if err != nil {
+		report.StatusCode = 500
 		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("Excel読み込みエラー: %v", err))
 		resultChan <- report
 		return
 	}
 
 	if err := input.ActivateOrderSheet(filePath); err != nil {
+		report.StatusCode = 500
 		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("入力Iのアクティベーションエラー: %v", err))
 		resultChan <- report
 		return
@@ -171,23 +173,22 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 
 	// 3. エラー収集
 	errs := collectValidationErrors(&sheet, resp, code)
-	if code >= 400 && code < 500 && len(errs) > 0 {
-		report.StatusCode = output.StatusCode(code)
-		report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
-		report.ErrorMessages = errs
-		resultChan <- report
+	report.StatusCode = output.StatusCode(code)
+	report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
+	report.ErrorMessages = errs
 
-	} else if code > 300 {
-		report.StatusCode = output.StatusCode(code)
-		// 4. 必要に応じて2回目のPOST (オーバーライド)
-		errs := handleOverridePost(&report, &sheet)
-		report.ErrorMessages = errs
-	}
-
-	// 5. 最終的なステータスコードの決定
-	if len(report.ErrorMessages) == 0 {
-		report.StatusCode = output.StatusCode(code)
-	}
-
+	// 1回目のレポート送信
+	// 300番台以下：Warning/Success - そのまま返す
 	resultChan <- report
+
+	if code >= 400 && code < 500 {
+		// 2回目のPOST (オーバーライド)
+		// 400番台: Error処理で1回目のレポートを送信後、2回目のPOSTを実行
+		secondReport := output.Report{
+			Filename: filepath.Base(filePath),
+		}
+		secondErrs := handleOverridePost(&secondReport, &sheet)
+		secondReport.ErrorMessages = secondErrs
+		resultChan <- secondReport
+	}
 }
