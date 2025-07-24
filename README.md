@@ -24,26 +24,26 @@ $ pncheck request1.xlsx request2.xlsx
 
 ![エクセルファイルをまとめてexe上にドラッグしてください。](doc/screen_shot_usage.png)
 
-![HTMLファイルが出力されます。エラーの内容は生成されたリンク先へ飛んでから、PNSearchの[作成内容を確認する]ボタンを押してください。](doc/screen_shot_result.png)
+![HTMLファイルが出力されます。エラーやワーニングの具体的な内容はファイル名をクリックすると、ブレイクダウンされて表示されます。また、詳細ボタンを押すことで開かれるPNSearchを開くと、直接修正することができます。](doc/screen_shot_result.png)
 
 
 ## ☢️エラーの内容について
 
-### PNSearch側のエラー
+### PNSearchが検査する項目
 PNSearchのヘルプを確認してください。
-Errorが出たときはErrorを全て解消するまでWarningを見ることができません。
 
-### pncheck側のエラー
+### pncheckが検査する項目
 サーバー側で確認できないエラーはpncheck側で確認してFatalを発行します。
 そのため、PNSearch のError, Warningを確認することができません。
 
-#### 確認項目
-- Excelが読み込めない場合
-- 入力Iが納期、ソートされていない場合
-- PNSearchと通信できない場合
-- PNSearchからの応答に以上が含まれている場合
+- 行の順序にソートがかけられていること(納期順 -> 品番順)
+- 要求票の版番号(バージョン)がPNSearchで作成されるものとと同一であること
 
-ただし、入力Iがアクティブでない場合はFatalを発行せずに、入力Iを自動的にアクティブにして元のExcelファイルを上書き保存します。警告などは出ません。
+#### Fatalが出た場合の確認項目
+- Excelが読み込めない場合
+- PNSearchと通信できない場合
+- PNSearchからの応答に異常が含まれている場合
+
 
 ## 🏗️ Build
 

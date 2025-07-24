@@ -101,36 +101,36 @@ func collectValidationErrors(sheet *input.Sheet, resp *api.APIResponse, code int
 	return
 }
 
-// handleOverridePost はエラー時のオーバーライドPOST処理を実行します
-func handleOverridePost(report *output.Report, sheet *input.Sheet) (errs []string) {
+// handleOverridePost はエラー時のオーバーライドPOST処理を実行し、
+// reportを完全に更新します
+func handleOverridePost(report *output.Report, sheet *input.Sheet) error {
 	sheet.Config.Overridable = true
 	sheet.Config.Validatable = false
 	body, code, err := sheet.Post()
 	if err != nil {
-		errs = append(errs, fmt.Sprintf("API通信エラー(2回目): %v", err))
-		return
+		return fmt.Errorf("API通信エラー(2回目): %v", err)
 	}
 
 	resp, err := api.JsonParse(body)
 	if err != nil {
-		errs = append(errs, fmt.Sprintf("APIレスポンス解析エラー(2回目): %v", err))
-		return
+		return fmt.Errorf("APIレスポンス解析エラー(2回目): %v", err)
 	}
 
-	// リンクをオーバーライド後のものに更新
+	// reportを完全に更新
 	report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
+	report.StatusCode = output.StatusCode(code)
 
-	// 2回目のレスポンスがワーニング(300番台)の場合、ステータスを更新しメッセージも追加
-	if code >= 300 && code < 400 {
-		report.StatusCode = output.StatusCode(code)
-		if resp.Message != "" {
-			errs = append(errs, resp.Message)
-		}
-		for _, e := range resp.PNResponse.Error {
-			errs = append(errs, formatErrorMessage(e))
-		}
+	// エラーメッセージを直接設定
+	var errs []string
+	if resp.Message != "" {
+		errs = append(errs, resp.Message)
 	}
-	return
+	for _, e := range resp.PNResponse.Error {
+		errs = append(errs, formatErrorMessage(e))
+	}
+	report.ErrorMessages = errs
+
+	return nil
 }
 
 func processFile(filePath string, resultChan chan<- output.Report) {
@@ -187,8 +187,11 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 		secondReport := output.Report{
 			Filename: filepath.Base(filePath),
 		}
-		secondErrs := handleOverridePost(&secondReport, &sheet)
-		secondReport.ErrorMessages = secondErrs
+		if err := handleOverridePost(&secondReport, &sheet); err != nil {
+			// システムエラーの場合
+			secondReport.StatusCode = 500
+			secondReport.ErrorMessages = []string{err.Error()}
+		}
 		resultChan <- secondReport
 	}
 }
