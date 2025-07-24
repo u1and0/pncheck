@@ -71,7 +71,7 @@
                   <details>
                     <summary class="details-summary d-flex justify-content-between align-items-start">
                       <span class="fw-bold">{{.Filename}}</span>
-                      {{if .Link}}<a href="{{.Link}}" class="badge bg-danger text-decoration-none" target="_blank">エラー詳細</a>{{end}}
+                      {{if .Link}}<a href="{{.Link}}" class="badge bg-danger text-decoration-none" target="_blank">詳細</a>{{end}}
                     </summary>
                     <ul class="list-group list-group-flush mt-2">
                       {{range .ErrorMessages}}
@@ -102,7 +102,7 @@
                    <details>
                     <summary class="details-summary d-flex justify-content-between align-items-start">
                       <span class="fw-bold">{{.Filename}}</span>
-                      {{if .Link}}<a href="{{.Link}}" class="badge bg-warning text-dark text-decoration-none" target="_blank">ワーニング詳細</a>{{end}}
+                      {{if .Link}}<a href="{{.Link}}" class="badge bg-warning text-dark text-decoration-none" target="_blank">詳細</a>{{end}}
                     </summary>
                     <ul class="list-group list-group-flush mt-2">
                       {{range .ErrorMessages}}
