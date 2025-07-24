@@ -185,7 +185,7 @@ func TestCheckOrderItemsSortOrder(t *testing.T) {
 	for _, tt := range tests {
 		// t.Run を使うと、各テストケースが独立して実行され、結果が見やすくなります
 		t.Run(tt.name, func(t *testing.T) {
-			err := CheckOrderItemsSortOrder(tt.sheet)
+			err := CheckOrderItemsSortOrder(&tt.sheet)
 
 			// エラーが期待されているかチェック
 			if tt.expectError {
