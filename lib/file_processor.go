@@ -82,12 +82,12 @@ func formatErrorMessage(e api.ErrorRecord) string {
 }
 
 // collectValidationErrors はローカルとAPIの一次検証エラーを収集します
-func collectValidationErrors(filePath string, sheet *input.Sheet, resp *api.APIResponse, code int) (errs []string) {
+func collectValidationErrors(sheet *input.Sheet, resp *api.APIResponse, code int) (errs []string) {
 	// ローカルでの検証
-	if err := input.CheckSheetVersion(filePath); err != nil {
+	if err := sheet.CheckSheetVersion(); err != nil {
 		errs = append(errs, fmt.Sprintf("要求票の版番号の確認: %s", err))
 	}
-	if err := input.CheckOrderItemsSortOrder(sheet); err != nil {
+	if err := sheet.CheckOrderItemsSortOrder(); err != nil {
 		errs = append(errs, fmt.Sprintf("入力Iが納期と品番順にソートされていません: %v", err))
 	}
 
@@ -170,7 +170,7 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 	}
 
 	// 3. エラー収集
-	errs := collectValidationErrors(filePath, &sheet, resp, code)
+	errs := collectValidationErrors(&sheet, resp, code)
 	if code >= 400 && code < 500 && len(errs) > 0 {
 		report.StatusCode = output.StatusCode(code)
 		report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
