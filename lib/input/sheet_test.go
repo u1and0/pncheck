@@ -1,6 +1,7 @@
 package input
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/xuri/excelize/v2"
@@ -61,7 +62,7 @@ func TestHeaderRead(t *testing.T) {
 
 	actual := *New(testFile)
 	actual.Header.read(f)
-	if expected.Header != actual.Header {
+	if !reflect.DeepEqual(actual.Header, expected.Header) {
 		t.Errorf("got %#v, want: %#v", actual.Header, &expected.Header)
 	}
 }
@@ -101,8 +102,8 @@ func TestOrderRead(t *testing.T) {
 	if len(actual.Orders) == 0 {
 		t.Errorf("Ordersの値がありません len == 0\n")
 	}
-	if expected.Orders[0] != actual.Orders[0] {
-		t.Errorf("got %#v, want: %#v", actual.Orders[0], &expected.Orders[0])
+	if !reflect.DeepEqual(actual.Orders, expected.Orders) {
+		t.Errorf("got %#v, want: %#v", actual.Orders, expected.Orders)
 	}
 }
 
