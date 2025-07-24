@@ -21,22 +21,25 @@ const (
 	dateLayout = "2006/01/02"
 	// APIのエンドポイントパス
 	apiEndpointPath = "/api/v1/requests/confirm"
+	// サーバーの要求票バージョン取得AP
+	apiVersionEndpointPath = "/api/v1/requests/version"
 )
 
 // 定数定義 (Excelレイアウト - requestパッケージの書き込みコードに基づく)
 const (
-	headerSheetName = "入力Ⅱ" // ヘッダー情報が主に書かれているシート名
-	orderSheetName  = "入力Ⅰ" // 明細情報が書かれているシート名 (requestパッケージの定数を使用)
-	versionCell     = "AU1" // 要求票シートのバージョンが書かれているセル
+	headerSheetName       = "入力Ⅱ"   // ヘッダー情報が主に書かれているシート名
+	orderSheetName        = "入力Ⅰ"   // 明細情報が書かれているシート名 (requestパッケージの定数を使用)
+	printSheetNameDefault = "10品目用" // 1ページ目の印刷シートの名称
 
 	// --- Header セル位置 (入力Ⅱ) ---
-	projectIDCell   = "D1" // 製番 (親番)
-	projectEdaCell  = "F1" // 製番 (枝番) - 親番 + 枝番 => 製番　とする
-	deadlineHCell   = "D2" // 製番納期
-	requestDateCell = "D4" // 要求年月日
-	projectNameCell = "D5" // 製番名称
-	noteCell        = "D6" // 備考
-	userSectionCell = "P5" // 要求元
+	projectIDCell   = "D1"  // 製番 (親番)
+	projectEdaCell  = "F1"  // 製番 (枝番) - 親番 + 枝番 => 製番　とする
+	deadlineHCell   = "D2"  // 製番納期
+	requestDateCell = "D4"  // 要求年月日
+	projectNameCell = "D5"  // 製番名称
+	noteCell        = "D6"  // 備考
+	userSectionCell = "P5"  // 要求元
+	versionCell     = "AV1" // 要求票シートのバージョンが書かれているセル
 	// orderTypeCell   = "B2" // 発注区分 (※要確認: 書き込みコードに該当なし、テンプレート依存の可能性大)
 
 	// --- Order セル位置 (入力Ⅰ) ---
@@ -64,8 +67,7 @@ var (
 	// API通信のデフォルトタイムアウト
 	defaultTimeout = 30 * time.Second
 	// PNSearch規格外の日付文字列
-	dateLayoutSub  = []string{"01-02-06", "2006/1/2", "1/2/2006"} // PNSearch規格外の日付文字列
-	printSheetName = "10品目用"                                      // 1ページ目の印刷シートの名称
+	dateLayoutSub = []string{"01-02-06", "2006/1/2", "1/2/2006"} // PNSearch規格外の日付文字列
 )
 
 type (
@@ -87,6 +89,8 @@ type (
 		FileName    string `json:"ファイル名"`
 		UserSection string `json:"要求元"`
 		Note        string `json:"備考"`
+
+		Version string
 	}
 	// Order : 要求票の1行
 	Order struct {
@@ -113,11 +117,16 @@ type (
 		Header `json:"header"`
 		Orders `json:"orders"`
 	}
+
+	// ServerVersionResponse はサーバーから返されるバージョン情報のJSON構造を定義します。
+	ServerVersionResponse struct {
+		SheetVersion string `json:"sheetVersion"`
+	}
 )
 
 func New(f string) *Sheet {
 	return &Sheet{
-		Config: Config{true, true, false}, // 初期値はOverridableを実行しない
+		Config: Config{true, true, true},
 		Header: Header{
 			// ディレクトリを除いたファイル名のみ+surfix _pncheck
 			// 30エラーを出さないためのダミーファイル名
@@ -155,16 +164,42 @@ func (h *Header) read(f *excelize.File) error {
 
 	h.Note = getCellValue(f, headerSheetName, noteCell)
 
+	// 印刷シート名の取得
+	printSheetName := getPrintSheet(f)
+
+	// シートの版番号の取得
+	lv, err := f.GetCellValue(printSheetName, versionCell)
+	localSheetVersion := strings.TrimSpace(lv)
+	if err != nil || localSheetVersion == "" {
+		// FIXME 古いテンプレートだとこのセル
+		lv, err = f.GetCellValue(printSheetName, "AU1")
+		localSheetVersion = strings.TrimSpace(lv)
+		if localSheetVersion == "" {
+			return fmt.Errorf(
+				"要求票ファイルからバージョン情報を読み取れませんでした。"+
+					"セル'%s' が空か存在しない可能性があります。",
+				versionCell,
+			)
+		}
+	}
+	h.Version = localSheetVersion
+
 	// 要求元は印刷シートから読み込む
+	h.UserSection = getCellValue(f, printSheetName, userSectionCell)
+	return nil
+}
+
+// getPrintSheet : 10品目用という名前のシートが見つからなければ
+// 入力IIの右隣にのシート名とする
+func getPrintSheet(f *excelize.File) string {
 	// printSheetName == 10品目用はエラーになり得ないのでエラーを明示的に潰す
-	if i, _ := f.GetSheetIndex(printSheetName); i < 0 {
+	if i, _ := f.GetSheetIndex(printSheetNameDefault); i < 0 {
 		// 印刷シート名が存在しない(つまりi==1)ならば、入力IIの右隣のシートとする
 		// headerSheetName == 入力IIはエラーになり得ないのでエラーを明示的に潰す
 		i, _ = f.GetSheetIndex(headerSheetName)
-		printSheetName = f.GetSheetName(i + 1)
+		return f.GetSheetName(i + 1)
 	}
-	h.UserSection = getCellValue(f, printSheetName, userSectionCell)
-	return nil
+	return printSheetNameDefault
 }
 
 func isEmptyRow(pid, name, quantity string) bool {
@@ -304,7 +339,7 @@ func (o *Orders) read(f *excelize.File) error {
 }
 
 // CheckOrderItemsSortOrder : 注文明細の並び順チェック
-func CheckOrderItemsSortOrder(sheet Sheet) error {
+func (sheet *Sheet) CheckOrderItemsSortOrder() error {
 	orders := sheet.Orders
 	n := len(orders)
 
@@ -334,7 +369,7 @@ func CheckOrderItemsSortOrder(sheet Sheet) error {
 		// current.Deadline == next.Deadline かつ current.Pid > next.Pid の場合は不正
 		if current.Deadline == next.Deadline {
 			if current.Pid > next.Pid {
-				return fmt.Errorf("インデックス %d と %d で並べ替え順から外れた項目を注文しています：Pid '%s' は同じ要望納期 '%s' の '%s' の後にあります。",
+				return fmt.Errorf("インデックス %d と %d で並べ替え順から外れた項目を注文しています：品番 '%s' は同じ要望納期 '%s' の '%s' の後にあります。",
 					i, i+1, current.Pid, next.Pid, current.Deadline)
 			}
 			// current.Pid <= next.Pid の場合は正しい順序、または同じ要素なのでOK
@@ -414,12 +449,81 @@ func BuildRequestURL(sha256 string) string {
 	return fmt.Sprintf("%s/index?hash=%s#requirement-tab", serverAddress, sha256)
 }
 
-// GetSheetVersion : シート名: “10品目用”のセルAU1 の文字列を返す
-func GetSheetVersion(f *excelize.File) string {
-	value, err := f.GetCellValue(printSheetName, versionCell)
-	if err != nil {
-		slog.Error("Get version failed", slog.Any("msg", err.Error()))
-		return ""
+// CheckSheetVersion : 要求票の版番号確認を行う
+// sheet.Header.Version は開いているExcelファイルから読み取ったシートのバージョンです。
+// この関数は、サーバーから最新のシートバージョンを取得し、sheet.Header.Version と比較します。
+// バージョンが一致しない場合、エラーを返します。
+//
+// 要求票の版番号の確認はサーバーへ GETメソッド
+// http://192.168.160.118:9000/api/v1/requests/version
+//
+// 想定されるレスポンス:
+// {"sheetVersion":"M-0-814-04"}
+func (sheet *Sheet) CheckSheetVersion() error {
+	// サーバーテンプレートのバージョンを取得
+	if serverAddress == "" {
+		// ビルド時に serverAddress が設定されていない場合は致命的エラー
+		log.Fatalln(
+			`APIサーバーアドレスが空です。ビルド時に設定する必要があります。
+$ go build -ldflags="-X pncheck/lib/input.serverAddress=http://localhost:8080"`,
+		)
 	}
-	return value
+
+	apiURL := serverAddress + apiVersionEndpointPath
+	client := &http.Client{Timeout: defaultTimeout}
+
+	req, err := http.NewRequest("GET", apiURL, nil)
+	if err != nil {
+		return fmt.Errorf("HTTPリクエストの作成に失敗しました (%s): %w", apiURL, err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("APIへのリクエスト送信に失敗しました (%s): %w", apiURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body) // エラーボディも読み込んでログに含める
+		return fmt.Errorf(
+			"サーバーからのバージョン取得に失敗しました。ステータスコード: %d, レスポンス: %s",
+			resp.StatusCode,
+			string(bodyBytes),
+		)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("APIレスポンスボディの読み込みに失敗しました: %w", err)
+	}
+
+	var serverResp ServerVersionResponse
+	if err := json.Unmarshal(body, &serverResp); err != nil {
+		return fmt.Errorf("サーバー応答のJSON解析に失敗しました: %w, レスポンス: %s",
+			err, string(body))
+	}
+
+	serverSheetVersion := serverResp.SheetVersion
+
+	// バージョンが空文字列の場合の警告（サーバー側またはローカル側）
+	if sheet.Header.Version == "" {
+		slog.Warn("ローカルシートのバージョンが空です。サーバーと比較できません。")
+	}
+	if serverSheetVersion == "" {
+		slog.Warn("サーバーからのシートバージョンが空です。比較に失敗しました。", slog.
+			String("apiURL", apiURL))
+		// サーバーのバージョンが空の場合、有効なバージョンではないとみなしエラーを返す
+		return fmt.Errorf("サーバーから有効なシートバージョンが取得できませんでした。")
+	}
+
+	// バージョンの比較
+	if sheet.Header.Version != serverSheetVersion {
+		return fmt.Errorf(
+			"要求票のバージョンが一致しません。"+
+				"ローカル: '%s', サーバー: %s' です。"+
+				"最新の要求票テンプレートをご利用ください。",
+			sheet.Header.Version, serverSheetVersion,
+		)
+	}
+	return nil
 }

@@ -25,8 +25,9 @@ func createTestExcelFile(t *testing.T, dir, filename string, layoutFunc func(f *
 	// f.DeleteSheet("Sheet1") // excelizeのバージョンによっては不要/エラーになる場合あり
 
 	// 必要なシートを作成
-	_, _ = f.NewSheet(headerSheetName) // "入力Ⅱ"
-	_, _ = f.NewSheet(orderSheetName)  // "入力Ⅰ"
+	_, _ = f.NewSheet(headerSheetName)       // "入力Ⅱ"
+	_, _ = f.NewSheet(orderSheetName)        // "入力Ⅰ"
+	_, _ = f.NewSheet(printSheetNameDefault) // "10品目用"
 
 	// 不要になったデフォルトシートを削除 (NewFileで作成される "Sheet1")
 	// Note: シートが存在しない場合のエラーは無視する
@@ -67,6 +68,7 @@ func setValidLayout(f *excelize.File) {
 	f.SetCellValue(headerSheetName, requestDateCell, "2023/10/27") // D4: 要求年月日
 	f.SetCellValue(headerSheetName, projectNameCell, "テストプロジェクト")  // D5: 製番名称
 	f.SetCellValue(headerSheetName, noteCell, "備考欄テスト")            // D6: 備考
+	f.SetCellValue(printSheetNameDefault, versionCell, "M-701-04") // AV1: 版番号
 
 	// --- Orders Header (入力Ⅰ - 見出し行、読み込み対象外だが参考として) ---
 	f.SetCellValue(orderSheetName, colLv+"1", "Lv")
@@ -115,7 +117,7 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 	testFile := createTestExcelFile(t, testDir, "20231027-success-read-K.xlsx", setValidLayout)
 
 	expectedSheet := Sheet{
-		Config: Config{Validatable: true, Sortable: true, Overridable: false},
+		Config: Config{Validatable: true, Sortable: true, Overridable: true},
 		Header: Header{
 			OrderType:   購入,
 			ProjectID:   "1234501",                              // D1 + F1
@@ -124,6 +126,7 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 			Deadline:    "2023/11/30",                           // D2
 			FileName:    "pncheck_20231027-success-read-K.xlsx", // ファイル名 ダミーのpncheck_ prefixがつく
 			Note:        "備考欄テスト",                               // D6
+			Version:     "M-701-04",                             // AV1
 		},
 		Orders: Orders{
 			{ // Row 2

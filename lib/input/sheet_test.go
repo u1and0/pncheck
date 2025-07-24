@@ -1,6 +1,7 @@
 package input
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/xuri/excelize/v2"
@@ -10,7 +11,7 @@ func TestNew(t *testing.T) {
 	filePath := "20220101-12345678-TBD-K.xlsx"
 	actual := New(filePath)
 	expected := Sheet{
-		Config: Config{true, true, false},
+		Config: Config{true, true, true},
 		Header: Header{
 			FileName:  "pncheck_" + filePath,
 			OrderType: 購入,
@@ -49,6 +50,7 @@ func TestHeaderRead(t *testing.T) {
 			Deadline:    "2023/11/30",                      // D2
 			FileName:    "pncheck_success-001-read-K.xlsx", // ファイル名 ダミーのpncheck_ prefixがつく
 			Note:        "備考欄テスト",                          // D6
+			Version:     "M-701-04",                        // AV1
 		},
 	}
 
@@ -60,7 +62,7 @@ func TestHeaderRead(t *testing.T) {
 
 	actual := *New(testFile)
 	actual.Header.read(f)
-	if expected.Header != actual.Header {
+	if !reflect.DeepEqual(actual.Header, expected.Header) {
 		t.Errorf("got %#v, want: %#v", actual.Header, &expected.Header)
 	}
 }
@@ -100,8 +102,8 @@ func TestOrderRead(t *testing.T) {
 	if len(actual.Orders) == 0 {
 		t.Errorf("Ordersの値がありません len == 0\n")
 	}
-	if expected.Orders[0] != actual.Orders[0] {
-		t.Errorf("got %#v, want: %#v", actual.Orders[0], &expected.Orders[0])
+	if !reflect.DeepEqual(actual.Orders, expected.Orders) {
+		t.Errorf("got %#v, want: %#v", actual.Orders, expected.Orders)
 	}
 }
 
@@ -185,7 +187,7 @@ func TestCheckOrderItemsSortOrder(t *testing.T) {
 	for _, tt := range tests {
 		// t.Run を使うと、各テストケースが独立して実行され、結果が見やすくなります
 		t.Run(tt.name, func(t *testing.T) {
-			err := CheckOrderItemsSortOrder(tt.sheet)
+			err := tt.sheet.CheckOrderItemsSortOrder()
 
 			// エラーが期待されているかチェック
 			if tt.expectError {

@@ -35,7 +35,8 @@ const (
 // Report : HTMLに表示するためのデータを纏めた構造体
 // ファイル名やPNSearch表示用URLをまとめた構造体
 type Report struct {
-	Filename, Link, ErrorMessage string
+	Filename, Link string
+	ErrorMessages  []string
 	StatusCode
 	// []ErrorRecord  // TODO 保存しておくと後で役立つかも？
 	// Sheet // TODO 保存しておくと後で役立つかも？シートの修正とか。
@@ -70,7 +71,7 @@ func (reports *Reports) Classify(report Report) {
 		reports.WarningItems = append(reports.WarningItems, report)
 	} else if report.StatusCode >= successCode {
 		reports.SuccessItems = append(reports.SuccessItems, report)
-	} else { // report.StatusCode >= fatalCode  || reports.StatusCode < successCode{
+	} else { // ステータス200未満、つまり初期値(0)のまま場合、あるいは500以上
 		reports.FatalItems = append(reports.FatalItems, report)
 	}
 }
