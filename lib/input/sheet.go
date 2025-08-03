@@ -143,7 +143,7 @@ func (h *Header) read(f *excelize.File) error {
 	// 製番 (親番のみ読み取り)
 	parentID := getCellValue(f, headerSheetName, projectIDCell)
 	edaID := getCellValue(f, headerSheetName, projectEdaCell)
-	h.ProjectID = parentID + edaID
+	h.ProjectID = strings.TrimSpace(parentID) + strings.TrimSpace(edaID)
 	// 製番枝番は読み込まない (必要なら h にフィールド追加し、projectEdaCell から読み込む)
 	// h.ProjectEda = getCellValue(f, headerSheetName, projectEdaCell)
 
@@ -168,12 +168,12 @@ func (h *Header) read(f *excelize.File) error {
 	printSheetName := getPrintSheet(f)
 
 	// シートの版番号の取得
-	lv, err := f.GetCellValue(printSheetName, versionCell)
-	localSheetVersion := strings.TrimSpace(lv)
+	ver, err := f.GetCellValue(printSheetName, versionCell)
+	localSheetVersion := strings.TrimSpace(ver)
 	if err != nil || localSheetVersion == "" {
 		// FIXME 古いテンプレートだとこのセル
-		lv, err = f.GetCellValue(printSheetName, "AU1")
-		localSheetVersion = strings.TrimSpace(lv)
+		ver, err = f.GetCellValue(printSheetName, "AU1")
+		localSheetVersion = strings.TrimSpace(ver)
 		if localSheetVersion == "" {
 			return fmt.Errorf(
 				"要求票ファイルからバージョン情報を読み取れませんでした。"+
@@ -437,11 +437,15 @@ $ go build -ldflags="-X pncheck/lib/input.serverAddress=http://localhost:8080"`,
 
 // getCellValue は指定されたセルから値を取得します。エラー時は空文字を返します。
 func getCellValue(f *excelize.File, sheetName, axis string) string {
-	val, err := f.GetCellValue(sheetName, axis)
+	s, err := f.GetCellValue(sheetName, axis)
 	if err != nil {
 		return ""
 	}
-	return strings.TrimSpace(val)
+	// 左右のスペース、タブ文字、改行削除
+	s = strings.TrimSpace(s)
+	// 中間の改行削除
+	s = strings.ReplaceAll(s, "\n", " ")
+	return strings.ReplaceAll(s, "\r", " ")
 }
 
 // BuildRequestURL : ハッシュ値を基に要求票作成ページを呼び出すためのURLを返す
