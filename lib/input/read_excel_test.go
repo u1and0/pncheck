@@ -117,7 +117,7 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 	testFile := createTestExcelFile(t, testDir, "20231027-success-read-K.xlsx", setValidLayout)
 
 	expectedSheet := Sheet{
-		Config: Config{Validatable: true, Sortable: true, Overridable: true},
+		Config: Config{Validatable: true, Overridable: true},
 		Header: Header{
 			OrderType:   購入,
 			ProjectID:   "1234501",                              // D1 + F1
