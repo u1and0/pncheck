@@ -24,31 +24,31 @@ func TestParseOrderType(t *testing.T) {
 		{"Valid S Ending - Hyphen at Start", "202-231-tbd-S", 出庫}, // filepath.Base is "-file-S", split is ["", "file", "S"]
 
 		// --- Unhappy Path Cases (Invalid Endings / Default) ---
-		{"Invalid Ending - X", "file-X", 不明},
-		{"Invalid Ending - ABC", "data-abc", 不明},
-		{"Invalid Ending - Number", "report-123", 不明},
-		{"Invalid Ending - Empty String after Hyphen", "file-", 不明}, // Split results in ["file", ""], last is ""
-		{"Invalid Ending - Lowercase s", "file--s", 不明},             // Case sensitive
-		{"Invalid Ending - Lowercase k", "file---k", 不明},
-		{"Invalid Ending - Lowercase g", "file--g", 不明},
-		{"Invalid Ending - Mixed Case", "file--S ", 不明}, // Trailing space
+		{"Invalid Ending - X", "file-X", 未選択},
+		{"Invalid Ending - ABC", "data-abc", 未選択},
+		{"Invalid Ending - Number", "report-123", 未選択},
+		{"Invalid Ending - Empty String after Hyphen", "file-", 未選択}, // Split results in ["file", ""], last is ""
+		{"Invalid Ending - Lowercase s", "file--s", 未選択},             // Case sensitive
+		{"Invalid Ending - Lowercase k", "file---k", 未選択},
+		{"Invalid Ending - Lowercase g", "file--g", 未選択},
+		{"Invalid Ending - Mixed Case", "file--S ", 未選択}, // Trailing space
 
 		// --- Edge Cases (No Hyphens, Empty, etc.) ---
-		{"No Hyphens - Just S", "S", 不明}, // Last block is "S", but not after a hyphen
-		{"No Hyphens - Just K", "K", 不明},
-		{"No Hyphens - Just G", "G", 不明},
-		{"No Hyphens - Regular Filename", "myfile.txt", 不明},       // Last block is "myfile.txt"
-		{"No Hyphens - Filename with Dots", "archive.tar.gz", 不明}, // Last block is "archive.tar.gz"
-		{"Empty String Input", "", 不明},                            // filepath.Base("") is ".", Split(".") is [".", ""], last is "" -> "不明" (behavior might vary slightly by OS, but "." or "" are common)
-		{"Just a Hyphen", "-", 不明},                                // filepath.Base("-") is "-", Split("-") is ["", ""], last is "" -> "不明"
-		{"Hyphen at End", "file-S-", 不明},                          // filepath.Base("file-S-") is "file-S-", Split is ["file", "S", ""], last is "" -> "不明"
-		{"Hyphen at Start and End", "-file-S-", 不明},               // filepath.Base is "-file-S-", Split is ["", "file", "S", ""], last is "" -> "不明"
+		{"No Hyphens - Just S", "S", 未選択}, // Last block is "S", but not after a hyphen
+		{"No Hyphens - Just K", "K", 未選択},
+		{"No Hyphens - Just G", "G", 未選択},
+		{"No Hyphens - Regular Filename", "myfile.txt", 未選択},       // Last block is "myfile.txt"
+		{"No Hyphens - Filename with Dots", "archive.tar.gz", 未選択}, // Last block is "archive.tar.gz"
+		{"Empty String Input", "", 未選択},                            // filepath.Base("") is ".", Split(".") is [".", ""], last is "" -> "未選択" (behavior might vary slightly by OS, but "." or "" are common)
+		{"Just a Hyphen", "-", 未選択},                                // filepath.Base("-") is "-", Split("-") is ["", ""], last is "" -> "未選択"
+		{"Hyphen at End", "file-S-", 未選択},                          // filepath.Base("file-S-") is "file-S-", Split is ["file", "S", ""], last is "" -> "未選択"
+		{"Hyphen at Start and End", "-file-S-", 未選択},               // filepath.Base is "-file-S-", Split is ["", "file", "S", ""], last is "" -> "未選択"
 
 		// --- Directory Path Cases ---
-		{"Directory Path - No File", "/path/to/dir/", 不明}, // filepath.Base is "dir"
-		{"Root Directory Path", "/", 不明},                  // filepath.Base is "/"
-		{"Current Directory", ".", 不明},                    // filepath.Base is "."
-		{"Parent Directory", "..", 不明},                    // filepath.Base is ".."
+		{"Directory Path - No File", "/path/to/dir/", 未選択}, // filepath.Base is "dir"
+		{"Root Directory Path", "/", 未選択},                  // filepath.Base is "/"
+		{"Current Directory", ".", 未選択},                    // filepath.Base is "."
+		{"Parent Directory", "..", 未選択},                    // filepath.Base is ".."
 	}
 
 	for _, tc := range tests {
