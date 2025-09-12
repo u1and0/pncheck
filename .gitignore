@@ -1,7 +1,12 @@
 /pncheck*
 # docとREADME.htmlはlocalでしか管理しない
 /doc/
+/test/
 /README.html
 /*.syso
 /*.json
 /*.xlsx
+# LLM tools
+/.claude/
+/.gemini/
+/.qwen/
