@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	VERSION    = "v1.5.0"
+	VERSION    = "v1.5.1"
 	outputPath = "pncheck_report.html" // エラー出力ファイル
 )
 
@@ -31,8 +31,9 @@ func main() {
 	reports.BuildTime = BuildTime
 	reports.ExecutionTime = time.Now().Format("2006/01/02 15:04:05")
 
-	fmt.Println(reports)
-	if err = reports.Publish(outputPath); err != nil {
+	fmt.Println(reports)              // 標準出力
+	err = reports.Publish(outputPath) // HTML出力
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "レポートファイルの出力に失敗しました: %v\n", err)
 	}
 }
