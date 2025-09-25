@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -38,7 +39,7 @@ const (
 	requestDateCell = "D4"  // 要求年月日
 	projectNameCell = "D5"  // 製番名称
 	noteCell        = "D6"  // 備考
-	userSectionCell = "P5"  // 要求元
+	userSectionCell = "Q5"  // 要求元
 	versionCell     = "AV1" // 要求票シートのバージョンが書かれているセル
 	// orderTypeCell   = "B2" // 発注区分 (※要確認: 書き込みコードに該当なし、テンプレート依存の可能性大)
 
@@ -55,6 +56,7 @@ const (
 	colSerial      = "N" // 号機列
 	colMaker       = "O" // メーカ列
 	// colCompositionQty = "Y" // 構成数量 (固定値1のため読み込み不要)
+	colMisc           = "AJ" // 備考列
 	colUnit           = "BE" // 単位列
 	colVendor         = "BF" // 要望先列
 	colUnitPrice      = "BG" // 予定単価列
@@ -84,6 +86,7 @@ type (
 
 		RequestDate string `json:"要求年月日"`
 		Deadline    string `json:"製番納期"`
+		Remark      string `json:"出庫指示番号(組部品用)"`
 
 		FileName    string `json:"ファイル名"`
 		UserSection string `json:"要求元"`
@@ -163,6 +166,9 @@ func (h *Header) read(f *excelize.File) error {
 
 	h.Note = getCellValue(f, headerSheetName, noteCell)
 
+	// getDispatchNumber 備考欄の出庫指示番号は入力Iから読み込む
+	h.Remark = getLastRemarkValue(f)
+
 	// 印刷シート名の取得
 	printSheetName := getPrintSheet(f)
 
@@ -170,16 +176,11 @@ func (h *Header) read(f *excelize.File) error {
 	ver, err := f.GetCellValue(printSheetName, versionCell)
 	localSheetVersion := strings.TrimSpace(ver)
 	if err != nil || localSheetVersion == "" {
-		// FIXME 古いテンプレートだとこのセル
-		ver, err = f.GetCellValue(printSheetName, "AU1")
-		localSheetVersion = strings.TrimSpace(ver)
-		if localSheetVersion == "" {
-			return fmt.Errorf(
-				"要求票ファイルからバージョン情報を読み取れませんでした。"+
-					"セル'%s' が空か存在しない可能性があります。",
-				versionCell,
-			)
-		}
+		return fmt.Errorf(
+			"要求票ファイルからバージョン情報を読み取れませんでした。"+
+				"セル'%s' が空か存在しない可能性があります。",
+			versionCell,
+		)
 	}
 	h.Version = localSheetVersion
 
@@ -445,6 +446,29 @@ func getCellValue(f *excelize.File, sheetName, axis string) string {
 	// 中間の改行削除
 	s = strings.ReplaceAll(s, "\n", " ")
 	return strings.ReplaceAll(s, "\r", " ")
+}
+
+// getLastRemarkValue finds the last non-empty row in column AJ (備考欄) and extracts
+// the dispatch number from it.
+func getLastRemarkValue(f *excelize.File) string {
+	// Find the last non-empty row in column AJ (備考欄)
+	lastRow := ordersStartRow - 1 // Start from the row before the first data row
+	for r := ordersStartRow; ; r++ {
+		// Check if the main columns (品番, 品名, 数量) are all empty
+		rowPid := getCellValue(f, orderSheetName, colPid+strconv.Itoa(r))
+		rowName := getCellValue(f, orderSheetName, colName+strconv.Itoa(r))
+		rowQuantityStr := getCellValue(f, orderSheetName, colQuantity+strconv.Itoa(r))
+
+		if isEmptyRow(rowPid, rowName, rowQuantityStr) {
+			break // Stop when we find an empty row
+		}
+		lastRow = r // Update lastRow to current row
+	}
+
+	// Read the remark from the last non-empty row in column AJ
+	remark := getCellValue(f, orderSheetName, colMisc+strconv.Itoa(lastRow))
+	re := regexp.MustCompile(`\d+`) // 正規表現で数値のみ抜き出し
+	return re.FindString(remark)
 }
 
 // BuildRequestURL : ハッシュ値を基に要求票作成ページを呼び出すためのURLを返す
