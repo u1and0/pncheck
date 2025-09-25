@@ -20,7 +20,7 @@ var (
 
 func main() {
 	// コマンドライン引数を解析
-	filePaths, err := lib.ParseArguments(VERSION)
+	filePaths, showVerbose, err := lib.ParseArguments(VERSION)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -31,7 +31,14 @@ func main() {
 	reports.BuildTime = BuildTime
 	reports.ExecutionTime = time.Now().Format("2006/01/02 15:04:05")
 
-	fmt.Println(reports)              // 標準出力
+	if showVerbose {
+		b, err := reports.ToJSON()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "JSONの標準出力に失敗しました: %v\n", err)
+		}
+		fmt.Printf("%s\n", string(b)) // 標準出力
+	}
+
 	err = reports.Publish(outputPath) // HTML出力
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "レポートファイルの出力に失敗しました: %v\n", err)

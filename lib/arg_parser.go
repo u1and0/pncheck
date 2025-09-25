@@ -10,7 +10,7 @@ import (
 
 // ParseArguments はコマンドライン引数を解析し、処理対象のExcelファイルパスのリストを返します。
 // 引数が指定されていない場合や、-h / --help が指定された場合はヘルプメッセージを表示して終了します。
-func ParseArguments(version string) (filePaths []string, err error) {
+func ParseArguments(version string) (filePaths []string, verbose bool, err error) {
 	// ヘルプフラグの定義
 	var showHelp bool
 	flag.BoolVar(&showHelp, "h", false, "ヘルプメッセージを表示します")
@@ -20,6 +20,11 @@ func ParseArguments(version string) (filePaths []string, err error) {
 	var showVersion bool
 	flag.BoolVar(&showVersion, "v", false, "バージョン情報を表示します")
 	flag.BoolVar(&showVersion, "version", false, "バージョン情報を表示します")
+
+	// 冗長出力
+	var showVerbose bool
+	flag.BoolVar(&showVerbose, "V", false, "レポートの詳細を表示します")
+	flag.BoolVar(&showVerbose, "verbose", false, "レポートの詳細を表示します")
 
 	// 使用法メッセージのカスタマイズ
 	flag.Usage = func() {
@@ -51,11 +56,11 @@ func ParseArguments(version string) (filePaths []string, err error) {
 	// ファイルパスが1つも指定されていない場合はエラー
 	if len(filePaths) == 0 {
 		flag.Usage() // 使い方も表示
-		return nil, errors.New("処理対象のExcelファイルを最低1つ指定してください")
+		return nil, false, errors.New("処理対象のExcelファイルを最低1つ指定してください")
 	}
 
 	// ここで各ファイルパスの存在チェックや拡張子チェックを行うことも可能だが、
 	// processExcelFile内でエラーハンドリングするため、ここでは必須としない。
 
-	return filePaths, nil
+	return filePaths, showVerbose, nil
 }
