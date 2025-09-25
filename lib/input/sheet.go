@@ -55,6 +55,7 @@ const (
 	colSerial      = "N" // 号機列
 	colMaker       = "O" // メーカ列
 	// colCompositionQty = "Y" // 構成数量 (固定値1のため読み込み不要)
+	colMisc           = "AJ" // 備考列
 	colUnit           = "BE" // 単位列
 	colVendor         = "BF" // 要望先列
 	colUnitPrice      = "BG" // 予定単価列
@@ -84,6 +85,7 @@ type (
 
 		RequestDate string `json:"要求年月日"`
 		Deadline    string `json:"製番納期"`
+		Remark      string `json:"出庫指示番号(組部品用)"`
 
 		FileName    string `json:"ファイル名"`
 		UserSection string `json:"要求元"`
@@ -163,6 +165,11 @@ func (h *Header) read(f *excelize.File) error {
 
 	h.Note = getCellValue(f, headerSheetName, noteCell)
 
+	// TODO
+	// 備考欄の出庫指示番号は入力Iから読み込む
+	// remark := getCellValue(f, orderSheetName, colMisc+strconv.Itoa(r))
+	// h.Remark= // remark数値のみ抜き出し
+
 	// 印刷シート名の取得
 	printSheetName := getPrintSheet(f)
 
@@ -170,16 +177,11 @@ func (h *Header) read(f *excelize.File) error {
 	ver, err := f.GetCellValue(printSheetName, versionCell)
 	localSheetVersion := strings.TrimSpace(ver)
 	if err != nil || localSheetVersion == "" {
-		// FIXME 古いテンプレートだとこのセル
-		ver, err = f.GetCellValue(printSheetName, "AU1")
-		localSheetVersion = strings.TrimSpace(ver)
-		if localSheetVersion == "" {
-			return fmt.Errorf(
-				"要求票ファイルからバージョン情報を読み取れませんでした。"+
-					"セル'%s' が空か存在しない可能性があります。",
-				versionCell,
-			)
-		}
+		return fmt.Errorf(
+			"要求票ファイルからバージョン情報を読み取れませんでした。"+
+				"セル'%s' が空か存在しない可能性があります。",
+			versionCell,
+		)
 	}
 	h.Version = localSheetVersion
 
