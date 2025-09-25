@@ -167,24 +167,7 @@ func (h *Header) read(f *excelize.File) error {
 	h.Note = getCellValue(f, headerSheetName, noteCell)
 
 	// getDispatchNumber 備考欄の出庫指示番号は入力Iから読み込む
-	// Find the last non-empty row in column AJ (備考欄)
-	lastRow := ordersStartRow - 1 // Start from the row before the first data row
-	for r := ordersStartRow; ; r++ {
-		// Check if the main columns (品番, 品名, 数量) are all empty
-		rowPid := getCellValue(f, orderSheetName, colPid+strconv.Itoa(r))
-		rowName := getCellValue(f, orderSheetName, colName+strconv.Itoa(r))
-		rowQuantityStr := getCellValue(f, orderSheetName, colQuantity+strconv.Itoa(r))
-
-		if isEmptyRow(rowPid, rowName, rowQuantityStr) {
-			break // Stop when we find an empty row
-		}
-		lastRow = r // Update lastRow to current row
-	}
-
-	// Read the remark from the last non-empty row in column AJ
-	remark := getCellValue(f, orderSheetName, colMisc+strconv.Itoa(lastRow))
-	re := regexp.MustCompile(`\d+`) // 正規表現で数値のみ抜き出し
-	h.Remark = re.FindString(remark)
+	h.Remark = getLastRemarkValue(f)
 
 	// 印刷シート名の取得
 	printSheetName := getPrintSheet(f)
@@ -463,6 +446,29 @@ func getCellValue(f *excelize.File, sheetName, axis string) string {
 	// 中間の改行削除
 	s = strings.ReplaceAll(s, "\n", " ")
 	return strings.ReplaceAll(s, "\r", " ")
+}
+
+// getLastRemarkValue finds the last non-empty row in column AJ (備考欄) and extracts
+// the dispatch number from it.
+func getLastRemarkValue(f *excelize.File) string {
+	// Find the last non-empty row in column AJ (備考欄)
+	lastRow := ordersStartRow - 1 // Start from the row before the first data row
+	for r := ordersStartRow; ; r++ {
+		// Check if the main columns (品番, 品名, 数量) are all empty
+		rowPid := getCellValue(f, orderSheetName, colPid+strconv.Itoa(r))
+		rowName := getCellValue(f, orderSheetName, colName+strconv.Itoa(r))
+		rowQuantityStr := getCellValue(f, orderSheetName, colQuantity+strconv.Itoa(r))
+
+		if isEmptyRow(rowPid, rowName, rowQuantityStr) {
+			break // Stop when we find an empty row
+		}
+		lastRow = r // Update lastRow to current row
+	}
+
+	// Read the remark from the last non-empty row in column AJ
+	remark := getCellValue(f, orderSheetName, colMisc+strconv.Itoa(lastRow))
+	re := regexp.MustCompile(`\d+`) // 正規表現で数値のみ抜き出し
+	return re.FindString(remark)
 }
 
 // BuildRequestURL : ハッシュ値を基に要求票作成ページを呼び出すためのURLを返す

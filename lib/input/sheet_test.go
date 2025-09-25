@@ -107,6 +107,43 @@ func TestOrderRead(t *testing.T) {
 	}
 }
 
+// TestGetLastRemarkValue tests the getLastRemarkValue function
+func TestGetLastRemarkValue(t *testing.T) {
+	testDir := "testdata_sheet_remark"
+	testFile := createTestExcelFile(t, testDir, "remark_test.xlsx", func(f *excelize.File) {
+		// Set up test data for the order sheet
+		// Row 2
+		f.SetCellValue(orderSheetName, colPid+"2", "PN-001")
+		f.SetCellValue(orderSheetName, colName+"2", "部品A")
+		f.SetCellValue(orderSheetName, colQuantity+"2", "10")
+		f.SetCellValue(orderSheetName, colMisc+"2", "出庫指示番号: 12345による")
+
+		// Row 3
+		f.SetCellValue(orderSheetName, colPid+"3", "PN-002")
+		f.SetCellValue(orderSheetName, colName+"3", "部品B")
+		f.SetCellValue(orderSheetName, colQuantity+"3", "5")
+		f.SetCellValue(orderSheetName, colMisc+"3", "出庫指示番号: 67890による")
+
+		// Row 4 (empty row to mark end)
+		f.SetCellValue(orderSheetName, colPid+"4", "")
+		f.SetCellValue(orderSheetName, colName+"4", "")
+		f.SetCellValue(orderSheetName, colQuantity+"4", "")
+	})
+
+	f, err := excelize.OpenFile(testFile)
+	if err != nil {
+		t.Errorf("テスト用Excelファイルが開けません\n")
+	}
+	defer f.Close()
+
+	// Test that we get the last remark value (67890 from row 3)
+	actual := getLastRemarkValue(f)
+	expected := "67890"
+	if actual != expected {
+		t.Errorf("getLastRemarkValue() = %q, want %q", actual, expected)
+	}
+}
+
 // TestCheckOrderItemsSortOrder は CheckOrderItemsSortOrder 関数のテストを行います。
 func TestCheckOrderItemsSortOrder(t *testing.T) {
 	// テストケースを定義
