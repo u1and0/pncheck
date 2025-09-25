@@ -31,6 +31,7 @@ func main() {
 	reports.BuildTime = BuildTime
 	reports.ExecutionTime = time.Now().Format("2006/01/02 15:04:05")
 
+	fmt.Println(reports)
 	if err = reports.Publish(outputPath); err != nil {
 		fmt.Fprintf(os.Stderr, "レポートファイルの出力に失敗しました: %v\n", err)
 	}

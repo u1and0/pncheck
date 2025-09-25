@@ -6,6 +6,7 @@ package output
 
 import (
 	"embed"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -61,6 +62,19 @@ func (reports *Reports) Publish(outputPath string) error {
 	defer out.Close()
 
 	return tmpl.Execute(out, reports)
+}
+
+// ToJSON : Reports構造体をJSONとしてバイト列で返す
+func (r *Reports) ToJSON() ([]byte, error) {
+	return json.MarshalIndent(r, "", "  ")
+}
+
+func (r *Reports) String() string {
+	b, err := r.ToJSON()
+	if err != nil {
+		return "failed to convert JSON"
+	}
+	return string(b)
 }
 
 // Classify : Reportに埋め込まれたHTTPステータスコードに基づいて分類
