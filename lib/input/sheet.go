@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -38,7 +39,7 @@ const (
 	requestDateCell = "D4"  // 要求年月日
 	projectNameCell = "D5"  // 製番名称
 	noteCell        = "D6"  // 備考
-	userSectionCell = "P5"  // 要求元
+	userSectionCell = "Q5"  // 要求元
 	versionCell     = "AV1" // 要求票シートのバージョンが書かれているセル
 	// orderTypeCell   = "B2" // 発注区分 (※要確認: 書き込みコードに該当なし、テンプレート依存の可能性大)
 
@@ -165,10 +166,25 @@ func (h *Header) read(f *excelize.File) error {
 
 	h.Note = getCellValue(f, headerSheetName, noteCell)
 
-	// TODO
-	// 備考欄の出庫指示番号は入力Iから読み込む
-	// remark := getCellValue(f, orderSheetName, colMisc+strconv.Itoa(r))
-	// h.Remark= // remark数値のみ抜き出し
+	// getDispatchNumber 備考欄の出庫指示番号は入力Iから読み込む
+	// Find the last non-empty row in column AJ (備考欄)
+	lastRow := ordersStartRow - 1 // Start from the row before the first data row
+	for r := ordersStartRow; ; r++ {
+		// Check if the main columns (品番, 品名, 数量) are all empty
+		rowPid := getCellValue(f, orderSheetName, colPid+strconv.Itoa(r))
+		rowName := getCellValue(f, orderSheetName, colName+strconv.Itoa(r))
+		rowQuantityStr := getCellValue(f, orderSheetName, colQuantity+strconv.Itoa(r))
+
+		if isEmptyRow(rowPid, rowName, rowQuantityStr) {
+			break // Stop when we find an empty row
+		}
+		lastRow = r // Update lastRow to current row
+	}
+
+	// Read the remark from the last non-empty row in column AJ
+	remark := getCellValue(f, orderSheetName, colMisc+strconv.Itoa(lastRow))
+	re := regexp.MustCompile(`\d+`) // 正規表現で数値のみ抜き出し
+	h.Remark = re.FindString(remark)
 
 	// 印刷シート名の取得
 	printSheetName := getPrintSheet(f)
