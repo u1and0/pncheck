@@ -26,8 +26,16 @@ const (
 )
 
 // ProcessExcelFile は、複数のExcelファイルを並列に処理し、その結果を返します。
-func ProcessExcelFile(filePaths []string) (reports output.Reports) {
-	fileChan := make(chan string, len(filePaths))
+//
+// @errors:
+//
+//	Reports.Classify(): unknown status code %d: must 200 <= code < 600
+func ProcessExcelFile(filePaths []string) (output.Reports, error) {
+	var (
+		reports  output.Reports
+		fileChan = make(chan string, len(filePaths))
+	)
+
 	for _, filePath := range filePaths {
 		fileChan <- filePath
 	}
@@ -57,10 +65,12 @@ func ProcessExcelFile(filePaths []string) (reports output.Reports) {
 	}()
 
 	for result := range resultChan {
-		reports.Classify(result)
+		if err := reports.Classify(result); err != nil {
+			return reports, err
+		}
 	}
 
-	return
+	return reports, nil
 }
 
 // formatErrorMessage はErrorRecordを整形して文字列として返します。
@@ -192,7 +202,11 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 
 	// 3. エラー収集
 	errs := collectValidationErrors(&sheet, resp, code)
-	report.StatusCode = output.StatusCode(code)
+	if errs != nil {
+		report.StatusCode = 500
+	} else {
+		report.StatusCode = output.StatusCode(code)
+	}
 	report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
 	report.ErrorMessages = errs
 

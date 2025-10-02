@@ -26,7 +26,10 @@ func main() {
 	}
 
 	// 各ファイルを処理
-	reports := lib.ProcessExcelFile(filePaths)
+	reports, err := lib.ProcessExcelFile(filePaths)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "レポートファイルの出力に失敗しました: %v\n", err)
+	}
 	reports.Version = VERSION
 	reports.BuildTime = BuildTime
 	reports.ExecutionTime = time.Now().Format("2006/01/02 15:04:05")
