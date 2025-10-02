@@ -26,8 +26,16 @@ const (
 )
 
 // ProcessExcelFile は、複数のExcelファイルを並列に処理し、その結果を返します。
-func ProcessExcelFile(filePaths []string) (reports output.Reports) {
-	fileChan := make(chan string, len(filePaths))
+//
+// @errors:
+//
+//	Reports.Classify(): unknown status code %d: must 200 <= code < 600
+func ProcessExcelFile(filePaths []string) (output.Reports, error) {
+	var (
+		reports  output.Reports
+		fileChan = make(chan string, len(filePaths))
+	)
+
 	for _, filePath := range filePaths {
 		fileChan <- filePath
 	}
@@ -57,10 +65,12 @@ func ProcessExcelFile(filePaths []string) (reports output.Reports) {
 	}()
 
 	for result := range resultChan {
-		reports.Classify(result)
+		if err := reports.Classify(result); err != nil {
+			return reports, err
+		}
 	}
 
-	return
+	return reports, nil
 }
 
 // formatErrorMessage はErrorRecordを整形して文字列として返します。
@@ -88,8 +98,8 @@ func formatErrorMessage(e api.ErrorRecord) string {
 	return e.Message
 }
 
-// collectValidationErrors はローカルとAPIの一次検証エラーを収集します
-func collectValidationErrors(sheet *input.Sheet, resp *api.APIResponse, code int) (errs []string) {
+// collectLocalErrors はローカルとAPIの一次検証エラーを収集します
+func collectLocalErrors(sheet *input.Sheet) (errs []string) {
 	// ローカルでの検証
 	if err := sheet.CheckSheetVersion(); err != nil {
 		errs = append(errs, fmt.Sprintf("要求票の版番号の確認: %s", err))
@@ -108,14 +118,6 @@ func collectValidationErrors(sheet *input.Sheet, resp *api.APIResponse, code int
 				errs = append(errs, fmt.Sprintf("入力Iが納期と品番順にソートされていません: %v", err))
 			}
 		}
-	}
-
-	// APIからのエラー
-	if resp.Message != "" && code >= 400 {
-		errs = append(errs, resp.Message)
-	}
-	for _, e := range resp.PNResponse.Error {
-		errs = append(errs, formatErrorMessage(e))
 	}
 	return
 }
@@ -191,8 +193,20 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 	}
 
 	// 3. エラー収集
-	errs := collectValidationErrors(&sheet, resp, code)
-	report.StatusCode = output.StatusCode(code)
+	errs := collectLocalErrors(&sheet)
+	if errs != nil {
+		report.StatusCode = 500
+	} else {
+		report.StatusCode = output.StatusCode(code)
+	}
+
+	// 4. APIからのエラー
+	if resp.Message != "" && code >= 400 {
+		errs = append(errs, resp.Message)
+	}
+	for _, e := range resp.PNResponse.Error {
+		errs = append(errs, formatErrorMessage(e))
+	}
 	report.Link = input.BuildRequestURL(resp.PNResponse.SHA256)
 	report.ErrorMessages = errs
 
@@ -200,12 +214,12 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 	// 300番台以下：Warning/Success - そのまま返す
 	resultChan <- report
 
+	// 400番台: Error処理で1回目のレポートを送信後、2回目のPOSTを実行
 	if code >= 400 && code < 500 {
-		// 2回目のPOST (オーバーライド)
-		// 400番台: Error処理で1回目のレポートを送信後、2回目のPOSTを実行
 		secondReport := output.Report{
 			Filename: filepath.Base(filePath),
 		}
+		// 2回目のPOST (オーバーライド)
 		if err := handleOverridePost(&secondReport, &sheet); err != nil {
 			// システムエラーの場合
 			secondReport.StatusCode = 500

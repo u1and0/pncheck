@@ -7,6 +7,7 @@ package output
 import (
 	"embed"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -78,16 +79,24 @@ func (r *Reports) String() string {
 }
 
 // Classify : Reportに埋め込まれたHTTPステータスコードに基づいて分類
-func (reports *Reports) Classify(report Report) {
-	if report.StatusCode >= errorCode && report.StatusCode < fatalCode {
-		reports.ErrorItems = append(reports.ErrorItems, report)
-	} else if report.StatusCode >= warningCode {
-		reports.WarningItems = append(reports.WarningItems, report)
-	} else if report.StatusCode >= successCode {
-		reports.SuccessItems = append(reports.SuccessItems, report)
-	} else { // ステータス200未満、つまり初期値(0)のまま場合、あるいは500以上
+//
+// @errors:
+//
+//	unknown status code %d: must 200 <= code < 600
+func (reports *Reports) Classify(report Report) error {
+	var c = report.StatusCode
+	if c >= fatalCode {
 		reports.FatalItems = append(reports.FatalItems, report)
+	} else if c >= errorCode {
+		reports.ErrorItems = append(reports.ErrorItems, report)
+	} else if c >= warningCode {
+		reports.WarningItems = append(reports.WarningItems, report)
+	} else if c >= successCode {
+		reports.SuccessItems = append(reports.SuccessItems, report)
+	} else { // ステータス200未満、つまり初期値(0)のまま場合
+		return fmt.Errorf("unknown status code %d: must 200 <= code < 600", c)
 	}
+	return nil
 }
 
 // ModifyFileExt
