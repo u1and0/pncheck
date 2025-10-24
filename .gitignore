@@ -1,6 +1,7 @@
 /pncheck*
 # docとREADME.htmlはlocalでしか管理しない
 /doc/
+/memo/
 /test/
 /README.html
 /*.syso
