@@ -18,28 +18,32 @@ func TestParseArguments(t *testing.T) {
 	}()
 
 	tests := []struct {
-		name      string
-		args      []string
-		wantPaths []string
-		wantErr   bool
+		name             string
+		args             []string
+		wantPaths        []string
+		wantVerboseLevel int
+		wantErr          bool
 	}{
 		{
-			name:      "正常系 - 1ファイル",
-			args:      []string{"testapp", "file1.xlsx"},
-			wantPaths: []string{"file1.xlsx"},
-			wantErr:   false,
+			name:             "正常系 - 1ファイル",
+			args:             []string{"testapp", "file1.xlsx"},
+			wantPaths:        []string{"file1.xlsx"},
+			wantVerboseLevel: 0,
+			wantErr:          false,
 		},
 		{
-			name:      "正常系 - 複数ファイル",
-			args:      []string{"testapp", "file1.xlsx", "path/to/file2.xlsx", "file3.xlsx"},
-			wantPaths: []string{"file1.xlsx", "path/to/file2.xlsx", "file3.xlsx"},
-			wantErr:   false,
+			name:             "正常系 - 複数ファイル",
+			args:             []string{"testapp", "file1.xlsx", "path/to/file2.xlsx", "file3.xlsx"},
+			wantPaths:        []string{"file1.xlsx", "path/to/file2.xlsx", "file3.xlsx"},
+			wantVerboseLevel: 0,
+			wantErr:          false,
 		},
 		{
-			name:      "異常系 - 引数なし",
-			args:      []string{"testapp"},
-			wantPaths: nil,
-			wantErr:   true,
+			name:             "異常系 - 引数なし",
+			args:             []string{"testapp"},
+			wantPaths:        []string{},
+			wantVerboseLevel: 0,
+			wantErr:          true,
 		},
 	}
 
@@ -52,7 +56,7 @@ func TestParseArguments(t *testing.T) {
 			// flag.ContinueOnError を使うか、エラーをハンドリングする
 			flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError) // または flag.PanicOnError
 
-			gotPaths, err := ParseArguments("v0.1.0") // ここで flag.Parse() が呼ばれる
+			gotPaths, gotVerboseLevel, err := ParseArguments("v0.1.0") // ここで flag.Parse() が呼ばれる
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ParseArguments() error = %v, wantErr %v", err, tt.wantErr)
@@ -64,10 +68,72 @@ func TestParseArguments(t *testing.T) {
 			// if tt.wantErr && err == nil { ... }
 
 			if !reflect.DeepEqual(gotPaths, tt.wantPaths) {
+
 				t.Errorf("ParseArguments() gotPaths = %v, want %v", gotPaths, tt.wantPaths)
+
 			}
+
+			if gotVerboseLevel != tt.wantVerboseLevel {
+
+				t.Errorf("ParseArguments() gotVerboseLevel = %v, want %v", gotVerboseLevel, tt.wantVerboseLevel)
+
+			}
+
 		})
+
 	}
+
+	tests = append(tests, []struct {
+		name string
+
+		args []string
+
+		wantPaths []string
+
+		wantVerboseLevel int
+
+		wantErr bool
+	}{
+
+		{
+
+			name: "正常系 - Vフラグ",
+
+			args: []string{"testapp", "-V", "file1.xlsx"},
+
+			wantPaths: []string{"file1.xlsx"},
+
+			wantVerboseLevel: 1,
+
+			wantErr: false,
+		},
+
+		{
+
+			name: "正常系 - VVフラグ",
+
+			args: []string{"testapp", "-VV", "file1.xlsx"},
+
+			wantPaths: []string{"file1.xlsx"},
+
+			wantVerboseLevel: 2,
+
+			wantErr: false,
+		},
+
+		{
+
+			name: "正常系 - VVVフラグ",
+
+			args: []string{"testapp", "-VVV", "file1.xlsx"},
+
+			wantPaths: []string{"file1.xlsx"},
+
+			wantVerboseLevel: 3,
+
+			wantErr: false,
+		},
+	}...)
 }
 
 // 注意: -h や --help のテストは、os.Exit を呼び出すため単純にはテストできません。
