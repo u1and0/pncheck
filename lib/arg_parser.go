@@ -25,9 +25,13 @@ func ParseArguments(version string) (filePaths []string, verboseLevel int, err e
 	var verbose1 bool
 	flag.BoolVar(&verbose1, "V", false, "レポートの詳細を表示します")
 
-	// 詳細冗長出力
+	// API出力ログ
 	var verbose2 bool
-	flag.BoolVar(&verbose2, "VV", false, "Excelシートへの入力を表示します")
+	flag.BoolVar(&verbose2, "VV", false, "APIの戻り値を表示します")
+
+	// Excel入力ログ
+	var verbose3 bool
+	flag.BoolVar(&verbose3, "VVV", false, "Excelシートへの入力を表示します")
 
 	// 使用法メッセージのカスタマイズ
 	flag.Usage = func() {
@@ -71,6 +75,9 @@ func ParseArguments(version string) (filePaths []string, verboseLevel int, err e
 	}
 	if verbose2 {
 		verboseLevel = 2
+	}
+	if verbose3 {
+		verboseLevel = 3
 	}
 
 	return
