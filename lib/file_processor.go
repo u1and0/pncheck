@@ -7,6 +7,7 @@ PNSearch API から受け取ったJSONデータをReport型として格納しま
 package lib
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"runtime"
@@ -30,7 +31,7 @@ const (
 // @errors:
 //
 //	Reports.Classify(): unknown status code %d: must 200 <= code < 600
-func ProcessExcelFile(filePaths []string) (output.Reports, error) {
+func ProcessExcelFile(filePaths []string, debugLevel int) (output.Reports, error) {
 	var (
 		reports  output.Reports
 		fileChan = make(chan string, len(filePaths))
@@ -53,7 +54,7 @@ func ProcessExcelFile(filePaths []string) (output.Reports, error) {
 			defer wg.Done()
 			for filePath := range fileChan {
 				sem <- true
-				processFile(filePath, resultChan)
+				processFile(filePath, resultChan, debugLevel)
 				<-sem
 			}
 		}(i)
@@ -132,7 +133,7 @@ func handleOverridePost(report *output.Report, sheet *input.Sheet) error {
 		return fmt.Errorf("API通信エラー(2回目): %v", err)
 	}
 
-	resp, err := api.JsonParse(body)
+	resp, err := api.JSONParse(body)
 	if err != nil {
 		return fmt.Errorf("APIレスポンス解析エラー(2回目): %v", err)
 	}
@@ -154,7 +155,7 @@ func handleOverridePost(report *output.Report, sheet *input.Sheet) error {
 	return nil
 }
 
-func processFile(filePath string, resultChan chan<- output.Report) {
+func processFile(filePath string, resultChan chan<- output.Report, debugLevel int) {
 	var report output.Report
 	report.Filename = filepath.Base(filePath)
 
@@ -164,6 +165,16 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("Excel読み込みエラー: %v", err))
 		resultChan <- report
 		return
+	}
+
+	// Debug Print: Excel parse, API request
+	if debugLevel > 2 {
+		jsonData, err := json.MarshalIndent(sheet, "", "  ")
+		if err != nil {
+			err = fmt.Errorf("Sheet構造体のJSON変換に失敗しました: %w", err)
+			return
+		}
+		fmt.Printf("%s\n", jsonData)
 	}
 
 	if err := input.ActivateOrderSheet(filePath); err != nil {
@@ -184,7 +195,12 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 		return
 	}
 
-	resp, err := api.JsonParse(body)
+	// Debug Print API response
+	if debugLevel > 1 {
+		fmt.Printf("%s\n", body)
+	}
+
+	resp, err := api.JSONParse(body)
 	if err != nil {
 		report.StatusCode = 500 // レスポンス解析エラーもFatal
 		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("APIレスポンス解析エラー: %v", err))

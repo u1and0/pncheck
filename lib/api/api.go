@@ -70,17 +70,15 @@ func NewErrorRecord(err error) *ErrorRecord {
 // 	return e
 // }
 
-// JsonParse : APIレスポンスをパースして構造体へ変換する
-func JsonParse(body []byte) (*APIResponse, error) {
+// JSONParse : APIレスポンスをパースして構造体へ変換する
+func JSONParse(body []byte) (*APIResponse, error) {
 	// APIレスポンス解析とエラー出力
 	if body == nil || len(body) < 1 {
-		return nil, errors.New("bodyがありません")
+		return nil, errors.New("JSONParse error: body is undefined")
 	}
 	// レスポンス解析
 	var resp APIResponse
-	err := json.Unmarshal(body, &resp)
-	fmt.Printf("%s\n", body)
-	if err != nil {
+	if err := json.Unmarshal(body, &resp); err != nil {
 		return nil, fmt.Errorf("JSONパースに失敗しました: %s, %w", body, err)
 	}
 	// fmt.Printf("[DEBUG] pnresponse %#v\n", resp)

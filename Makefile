@@ -17,7 +17,7 @@
 
 BUILD_TIME = $(shell date '+%Y-%m-%dT%H:%M:%S')
 SERVER_ADDRESS ?= http://localhost:8080
-BUILD_CMD = go build -ldflags="-X pncheck/lib/input.serverAddress=$(SERVER_ADDRESS) -X main.BuildTime=$(BUILD_TIME)"
+BUILD_CMD = go build -ldflags="-X pncheck/lib/input.ServerAddress=$(SERVER_ADDRESS) -X pncheck/lib/input.BuildTime=$(BUILD_TIME)"
 
 all: test build exe doc
 

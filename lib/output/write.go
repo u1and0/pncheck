@@ -70,14 +70,6 @@ func (r *Reports) ToJSON() ([]byte, error) {
 	return json.MarshalIndent(r, "", "  ")
 }
 
-func (r *Reports) String() string {
-	b, err := r.ToJSON()
-	if err != nil {
-		return "failed to convert JSON"
-	}
-	return string(b)
-}
-
 // Classify : Reportに埋め込まれたHTTPステータスコードに基づいて分類
 //
 // @errors:
