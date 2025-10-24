@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath" // ヘルプメッセージ用にインポート
+	"pncheck/lib/input"
 )
 
 // ParseArguments はコマンドライン引数を解析し、処理対象のExcelファイルパスのリストを返します。
@@ -54,6 +55,12 @@ func ParseArguments(version string) (filePaths []string, verboseLevel int, err e
 	// バージョンフラグが指定されたらバージョンを表示して終了(成功)
 	if showVersion {
 		fmt.Println(filepath.Base(os.Args[0]), version)
+		if input.BuildTime != "" {
+			fmt.Printf("Built: %s\n", input.BuildTime)
+		}
+		if input.ServerAddress != "" {
+			fmt.Printf("API Endpoint: %s/api/v1\n", input.ServerAddress)
+		}
 		os.Exit(0)
 	}
 

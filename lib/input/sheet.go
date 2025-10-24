@@ -64,8 +64,6 @@ const (
 )
 
 var (
-	// APIサーバーのアドレス http://localhost:8080 (ビルド時に注入)
-	serverAddress string
 	// API通信のデフォルトタイムアウト
 	defaultTimeout = 30 * time.Second
 	// PNSearch規格外の日付文字列
@@ -390,14 +388,14 @@ func (sheet *Sheet) CheckOrderItemsSortOrder() error {
 // レスポンスボディ、HTTPステータスコード、エラーを返します。
 // ステータスコードが2xx以外でも、ボディがあれば読み込んで返します。
 func (sheet *Sheet) Post() (body []byte, statusCode int, err error) {
-	if serverAddress == "" {
+	if ServerAddress == "" {
 		log.Fatalln(
 			`APIサーバーアドレスが空です。ビルド時に設定する必要があります。
-$ go build -ldflags="-X pncheck/lib/input.serverAddress=http://localhost:8080"`,
+$ go build -ldflags="-X pncheck/lib/input.ServerAddress=http://localhost:8080"`,
 		)
 	}
 
-	var apiURL = serverAddress + apiEndpointPath
+	var apiURL = ServerAddress + apiEndpointPath
 	statusCode = 500 // デフォルト500
 
 	jsonData, err := json.Marshal(sheet)
@@ -473,7 +471,7 @@ func getLastRemarkValue(f *excelize.File) string {
 
 // BuildRequestURL : ハッシュ値を基に要求票作成ページを呼び出すためのURLを返す
 func BuildRequestURL(sha256 string) string {
-	return fmt.Sprintf("%s/index?hash=%s#requirement-tab", serverAddress, sha256)
+	return fmt.Sprintf("%s/index?hash=%s#requirement-tab", ServerAddress, sha256)
 }
 
 // CheckSheetVersion : 要求票の版番号確認を行う
@@ -488,15 +486,15 @@ func BuildRequestURL(sha256 string) string {
 // {"sheetVersion":"M-0-814-04"}
 func (sheet *Sheet) CheckSheetVersion() error {
 	// サーバーテンプレートのバージョンを取得
-	if serverAddress == "" {
-		// ビルド時に serverAddress が設定されていない場合は致命的エラー
+	if ServerAddress == "" {
+		// ビルド時に ServerAddress が設定されていない場合は致命的エラー
 		log.Fatalln(
 			`APIサーバーアドレスが空です。ビルド時に設定する必要があります。
-$ go build -ldflags="-X pncheck/lib/input.serverAddress=http://localhost:8080"`,
+$ go build -ldflags="-X pncheck/lib/input.ServerAddress=http://localhost:8080"`,
 		)
 	}
 
-	apiURL := serverAddress + apiVersionEndpointPath
+	apiURL := ServerAddress + apiVersionEndpointPath
 	client := &http.Client{Timeout: defaultTimeout}
 
 	req, err := http.NewRequest("GET", apiURL, nil)

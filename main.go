@@ -7,15 +7,12 @@ import (
 	"time"
 
 	"pncheck/lib"
+	"pncheck/lib/input"
 )
 
 const (
 	VERSION    = "v1.6.2"
 	outputPath = "pncheck_report.html" // エラー出力ファイル
-)
-
-var (
-	BuildTime string
 )
 
 func main() {
@@ -31,7 +28,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "レポートファイルの出力に失敗しました: %v\n", err)
 	}
 	reports.Version = VERSION
-	reports.BuildTime = BuildTime
+	reports.BuildTime = input.BuildTime
 	reports.ExecutionTime = time.Now().Format("2006/01/02 15:04:05")
 
 	if verboseLevel > 0 {
