@@ -30,7 +30,7 @@ const (
 // @errors:
 //
 //	Reports.Classify(): unknown status code %d: must 200 <= code < 600
-func ProcessExcelFile(filePaths []string) (output.Reports, error) {
+func ProcessExcelFile(filePaths []string, debug bool) (output.Reports, error) {
 	var (
 		reports  output.Reports
 		fileChan = make(chan string, len(filePaths))
@@ -53,7 +53,7 @@ func ProcessExcelFile(filePaths []string) (output.Reports, error) {
 			defer wg.Done()
 			for filePath := range fileChan {
 				sem <- true
-				processFile(filePath, resultChan)
+				processFile(filePath, resultChan, debug)
 				<-sem
 			}
 		}(i)
@@ -132,7 +132,7 @@ func handleOverridePost(report *output.Report, sheet *input.Sheet) error {
 		return fmt.Errorf("API通信エラー(2回目): %v", err)
 	}
 
-	resp, err := api.JsonParse(body)
+	resp, err := api.JSONParse(body)
 	if err != nil {
 		return fmt.Errorf("APIレスポンス解析エラー(2回目): %v", err)
 	}
@@ -154,7 +154,7 @@ func handleOverridePost(report *output.Report, sheet *input.Sheet) error {
 	return nil
 }
 
-func processFile(filePath string, resultChan chan<- output.Report) {
+func processFile(filePath string, resultChan chan<- output.Report, debug bool) {
 	var report output.Report
 	report.Filename = filepath.Base(filePath)
 
@@ -184,7 +184,11 @@ func processFile(filePath string, resultChan chan<- output.Report) {
 		return
 	}
 
-	resp, err := api.JsonParse(body)
+	if debug {
+		fmt.Printf("%s\n", body)
+	}
+
+	resp, err := api.JSONParse(body)
 	if err != nil {
 		report.StatusCode = 500 // レスポンス解析エラーもFatal
 		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("APIレスポンス解析エラー: %v", err))

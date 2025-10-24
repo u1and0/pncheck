@@ -20,13 +20,14 @@ var (
 
 func main() {
 	// コマンドライン引数を解析
-	filePaths, showVerbose, err := lib.ParseArguments(VERSION)
+	filePaths, vlv, err := lib.ParseArguments(VERSION)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	// 各ファイルを処理
-	reports, err := lib.ProcessExcelFile(filePaths)
+	debug := vlv > 1
+	reports, err := lib.ProcessExcelFile(filePaths, debug)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "レポートファイルの出力に失敗しました: %v\n", err)
 	}
@@ -34,7 +35,7 @@ func main() {
 	reports.BuildTime = BuildTime
 	reports.ExecutionTime = time.Now().Format("2006/01/02 15:04:05")
 
-	if showVerbose {
+	if vlv > 0 {
 		b, err := reports.ToJSON()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "JSONの標準出力に失敗しました: %v\n", err)
