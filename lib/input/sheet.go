@@ -129,8 +129,9 @@ func New(f string) *Sheet {
 		Config: Config{true, true},
 		Header: Header{
 			// ディレクトリを除いたファイル名のみ+surfix _pncheck
-			// 30エラーを出さないためのダミーファイル名
-			FileName: "pncheck_" + filepath.Base(f),
+			// ファイル名重複エラーを出さないためのダミーファイル名として、
+			// 末尾にpncheckをつける
+			FileName: filepath.Base(f) + "_pncheck",
 			// 発注区分をファイル名から分類
 			OrderType: parseOrderType(f),
 		},
