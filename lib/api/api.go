@@ -73,7 +73,7 @@ func NewErrorRecord(err error) *ErrorRecord {
 // JSONParse : APIレスポンスをパースして構造体へ変換する
 func JSONParse(body []byte) (*APIResponse, error) {
 	// APIレスポンス解析とエラー出力
-	if body == nil || len(body) < 1 {
+	if len(body) < 1 {
 		return nil, errors.New("JSONParse error: body is undefined")
 	}
 	// レスポンス解析
