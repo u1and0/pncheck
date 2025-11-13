@@ -13,8 +13,9 @@ func TestNew(t *testing.T) {
 	expected := Sheet{
 		Config: Config{true, true},
 		Header: Header{
-			FileName:  "pncheck_" + filePath,
+			FileName:  filePath + "_pncheck",
 			OrderType: 購入,
+			Serial:    "", // ファイル名から読み込まれる
 		},
 	}
 	if actual.Config != expected.Config {
@@ -48,7 +49,8 @@ func TestHeaderRead(t *testing.T) {
 			ProjectName: "テストプロジェクト",                       // D5
 			RequestDate: "2023/10/27",                      // D4
 			Deadline:    "2023/11/30",                      // D2
-			FileName:    "pncheck_success-001-read-K.xlsx", // ファイル名 ダミーのpncheck_ prefixがつく
+			FileName:    "success-001-read-K.xlsx_pncheck", // ファイル名 ダミーの_pncheck suffixがつく
+			Serial:      "read",                            // ファイル名から読み込まれる
 			Note:        "備考欄テスト",                          // D6
 			Version:     "M-701-04",                        // AV1
 		},
