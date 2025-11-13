@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	VERSION    = "v1.6.2r"
+	VERSION    = "v1.6.3"
 	outputPath = "pncheck_report.html" // エラー出力ファイル
 )
 
