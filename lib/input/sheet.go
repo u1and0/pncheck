@@ -87,6 +87,7 @@ type (
 		Remark      string `json:"出庫指示番号(組部品用)"`
 
 		FileName    string `json:"ファイル名"`
+		Serial      string `json:"号機"`
 		UserSection string `json:"要求元"`
 		Note        string `json:"備考"`
 
@@ -129,8 +130,9 @@ func New(f string) *Sheet {
 		Config: Config{true, true},
 		Header: Header{
 			// ディレクトリを除いたファイル名のみ+surfix _pncheck
-			// 30エラーを出さないためのダミーファイル名
-			FileName: "pncheck_" + filepath.Base(f),
+			// ファイル名重複エラーを出さないためのダミーファイル名として、
+			// 末尾にpncheckをつける
+			FileName: filepath.Base(f) + "_pncheck",
 			// 発注区分をファイル名から分類
 			OrderType: parseOrderType(f),
 		},
@@ -166,6 +168,14 @@ func (h *Header) read(f *excelize.File) error {
 
 	// getDispatchNumber 備考欄の出庫指示番号は入力Iから読み込む
 	h.Remark = getLastRemarkValue(f)
+
+	// ファイル名からSerialを読み込む
+	fileNameParts := strings.Split(h.FileName, "-")
+	if len(fileNameParts) >= 3 {
+		h.Serial = fileNameParts[2]
+	} else {
+		slog.Warn("ファイル名からSerialを読み込めませんでした。ファイル名が 'xxx-xxx-serial-xxx' の形式ではありません。", slog.String("filename", h.FileName))
+	}
 
 	// 印刷シート名の取得
 	printSheetName := getPrintSheet(f)

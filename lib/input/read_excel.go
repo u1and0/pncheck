@@ -33,7 +33,6 @@ func ReadExcelToSheet(filePath string) (sheet Sheet, err error) {
 		if err := f.Close(); err != nil {
 			err = fmt.Errorf("警告: ファイルクローズエラー '%s': %v\n", filePath, err)
 		}
-		return
 		// defer だからfmt.Printf()だけにすべき？
 	}()
 

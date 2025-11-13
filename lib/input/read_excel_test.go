@@ -124,7 +124,8 @@ func TestReadExcelToSheet_Success(t *testing.T) {
 			ProjectName: "テストプロジェクト",                            // D5
 			RequestDate: "2023/10/27",                           // D4
 			Deadline:    "2023/11/30",                           // D2
-			FileName:    "pncheck_20231027-success-read-K.xlsx", // ファイル名 ダミーのpncheck_ prefixがつく
+			FileName:    "20231027-success-read-K.xlsx_pncheck", // ファイル名 ダミーの_pncheck suffixがつく
+			Serial:      "read",                               // ファイル名から読み込まれる
 			Note:        "備考欄テスト",                               // D6
 			Version:     "M-701-04",                             // AV1
 		},
@@ -282,7 +283,8 @@ func TestReadExcelToSheet_EmptySheet(t *testing.T) {
 		ProjectID:   "9999900", // 親番 + 枝番
 		ProjectName: "空シートテスト",
 		// RequestDate など、設定していないフィールドはゼロ値のまま
-		FileName: "pncheck_" + correctFormatFileName,
+		FileName: correctFormatFileName + "_pncheck",
+		Serial:   "EMPTY", // ファイル名から読み込まれる
 	}
 
 	sheet, err := ReadExcelToSheet(testFile)

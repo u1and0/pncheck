@@ -46,8 +46,16 @@ type Report struct {
 
 // Reports : 各Report をステータスコードによって分類し、実行時間を格納しておく構造体
 type Reports struct {
-	Version, ExecutionTime, BuildTime                  string
-	SuccessItems, WarningItems, ErrorItems, FatalItems []Report
+	// プログラムのビルド情報
+	Version,
+	ExecutionTime,
+	BuildTime,
+	ServerAddress string
+	// エラーリポート
+	SuccessItems,
+	WarningItems,
+	ErrorItems,
+	FatalItems []Report
 }
 
 // Publish : report.tmplを基にReportsをHTMLファイルとして出力する
