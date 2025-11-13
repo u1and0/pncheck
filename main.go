@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	VERSION    = "v1.6.2"
+	VERSION    = "v1.6.2r"
 	outputPath = "pncheck_report.html" // エラー出力ファイル
 )
 
@@ -30,6 +30,7 @@ func main() {
 	reports.Version = VERSION
 	reports.BuildTime = input.BuildTime
 	reports.ExecutionTime = time.Now().Format("2006/01/02 15:04:05")
+	reports.ServerAddress = input.ServerAddress
 
 	if verboseLevel > 0 {
 		b, err := reports.ToJSON()
