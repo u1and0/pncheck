@@ -11,9 +11,6 @@ import (
 	"pncheck/lib/input"
 )
 
-//go:embed lib/output/report.tmpl
-var tmplContent string
-
 //go:embed winres/icon.png
 var iconContent []byte // icon.pngをバイトスライスとして埋め込む
 
