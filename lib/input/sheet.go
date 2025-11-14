@@ -132,7 +132,7 @@ func New(f string) *Sheet {
 			// ディレクトリを除いたファイル名のみ+surfix _pncheck
 			// ファイル名重複エラーを出さないためのダミーファイル名として、
 			// 末尾にpncheckをつける
-			FileName: filepath.Base(f) + "_pncheck",
+			FileName: strings.TrimSuffix(filepath.Base(f), filepath.Ext(f)) + "_pncheck" + filepath.Ext(f),
 			// 発注区分をファイル名から分類
 			OrderType: parseOrderType(f),
 		},

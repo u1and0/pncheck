@@ -1,7 +1,9 @@
 package input
 
 import (
+	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/xuri/excelize/v2"
@@ -13,7 +15,7 @@ func TestNew(t *testing.T) {
 	expected := Sheet{
 		Config: Config{true, true},
 		Header: Header{
-			FileName:  filePath + "_pncheck",
+			FileName:  strings.TrimSuffix(filePath, filepath.Ext(filePath)) + "_pncheck" + filepath.Ext(filePath),
 			OrderType: 購入,
 			Serial:    "", // ファイル名から読み込まれる
 		},
@@ -49,7 +51,7 @@ func TestHeaderRead(t *testing.T) {
 			ProjectName: "テストプロジェクト",                       // D5
 			RequestDate: "2023/10/27",                      // D4
 			Deadline:    "2023/11/30",                      // D2
-			FileName:    "success-001-read-K.xlsx_pncheck", // ファイル名 ダミーの_pncheck suffixがつく
+			FileName:    "success-001-read-K_pncheck.xlsx", // ファイル名 ダミーの_pncheck suffixがつく
 			Serial:      "read",                            // ファイル名から読み込まれる
 			Note:        "備考欄テスト",                          // D6
 			Version:     "M-701-04",                        // AV1
