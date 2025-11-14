@@ -217,9 +217,14 @@ func TestParseSerial(t *testing.T) {
 			expected: "S001",
 		},
 		{
-			name:     "short file name",
+			name:     "short file name length 2",
 			filePath: "20231027-12345678.xlsx",
 			expected: "",
+		},
+		{
+			name:     "short file name length 3",
+			filePath: "20251114-000080010742-TBP.xlsx",
+			expected: "TBP",
 		},
 		{
 			name:     "empty file name",

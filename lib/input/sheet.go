@@ -148,8 +148,9 @@ func newFileName(f string) string {
 
 // parseSerial はファイルパスからSerialを読み込む
 func parseSerial(f string) string {
-	base := filepath.Base(f)
-	fields := strings.Split(base, "-")
+	base, ext := filepath.Base(f), filepath.Ext(f)
+	noext := strings.TrimSuffix(base, ext)
+	fields := strings.Split(noext, "-")
 	if len(fields) < 3 {
 		return ""
 	}
