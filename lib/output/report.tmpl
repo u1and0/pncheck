@@ -18,7 +18,10 @@
   <body>
     <div class="container mt-4">
       <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-        <h1 class="h2">pncheck result</h1>
+        <div class="d-flex align-items-center">
+          <img src="data:image/png;base64,{{.IconBase64}}" alt="Icon" width="32" height="32" class="me-2">
+          <h1 class="h2">pncheck result</h1>
+        </div>
         <div class="text-muted small">
           <div>バージョン: {{.Version}} {{.BuildTime}}</div>
           <div>出力日時: {{.ExecutionTime}}</div>
