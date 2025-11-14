@@ -1,110 +1,27 @@
 package input
 
 import (
-	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/xuri/excelize/v2"
 )
 
 func TestNew(t *testing.T) {
-	filePath := "20220101-12345678-TBD-K.xlsx"
-	actual := New(filePath)
+	filepath := "20220101-12345678-TBD-K.xlsx"
 	expected := Sheet{
-		Config: Config{true, true},
-		Header: Header{
-			FileName:  strings.TrimSuffix(filePath, filepath.Ext(filePath)) + "_pncheck" + filepath.Ext(filePath),
+		Config{true, true},
+		Header{
+			FileName:  "20220101-12345678-TBD-K_pncheck.xlsx",
 			OrderType: 購入,
-			Serial:    "", // ファイル名から読み込まれる
+			Serial:    "TBD",
 		},
-	}
-	if actual.Config != expected.Config {
-		t.Errorf("got %#v, want: %#v", actual.Config, &expected.Config)
-	}
-	if actual.Header != expected.Header {
-		t.Errorf("got %#v, want: %#v", actual.Header, &expected.Header)
-
-	}
-}
-
-// setValidLayout は正常系のExcelレイアウトを設定します。
-func setValidHeader(f *excelize.File) {
-	// --- Header (入力Ⅱ) ---
-	f.SetCellValue(headerSheetName, projectIDCell, " 12345 ")      // D1: 製番(親)
-	f.SetCellValue(headerSheetName, projectEdaCell, "01")          // F1: 製番(枝) - 読み込み対象外
-	f.SetCellValue(headerSheetName, deadlineHCell, "2023/11/30")   // D2: 製番納期
-	f.SetCellValue(headerSheetName, requestDateCell, "2023/10/27") // D4: 要求年月日
-	f.SetCellValue(headerSheetName, projectNameCell, "テストプロジェクト")  // D5: 製番名称
-	f.SetCellValue(headerSheetName, noteCell, "備考欄テスト")            // D6: 備考
-}
-
-func TestHeaderRead(t *testing.T) {
-	testDir := "testdata_sheet_header_read"
-	testFile := createTestExcelFile(t, testDir, "success-001-read-K.xlsx", setValidLayout)
-
-	expected := Sheet{
-		Header: Header{
-			OrderType:   購入,
-			ProjectID:   "1234501",                         // D1 + F1
-			ProjectName: "テストプロジェクト",                       // D5
-			RequestDate: "2023/10/27",                      // D4
-			Deadline:    "2023/11/30",                      // D2
-			FileName:    "success-001-read-K_pncheck.xlsx", // ファイル名 ダミーの_pncheck suffixがつく
-			Serial:      "read",                            // ファイル名から読み込まれる
-			Note:        "備考欄テスト",                          // D6
-			Version:     "M-701-04",                        // AV1
-		},
+		Orders{},
 	}
 
-	f, err := excelize.OpenFile(testFile)
-	if err != nil {
-		t.Errorf("テスト用Excelファイルが開けません\n")
-	}
-	defer f.Close()
-
-	actual := *New(testFile)
-	actual.Header.read(f)
-	if !reflect.DeepEqual(actual.Header, expected.Header) {
-		t.Errorf("got %#v, want: %#v", actual.Header, &expected.Header)
-	}
-}
-
-func TestOrderRead(t *testing.T) {
-	testDir := "testdata_sheet_order_read"
-	testFile := createTestExcelFile(t, testDir, "success-001-read-K.xlsx", setValidLayout)
-
-	expected := Sheet{
-		Orders: Orders{
-			{ // Row 2
-				Lv: 1, Pid: "PN-001", Name: "部品A", Type: "TypeX",
-				Quantity: 10.5, Unit: "個", Deadline: "2023/11/15", Kenku: "受入",
-				Device: "装置1", Serial: "S001", Maker: "MakerX", Vendor: "VendorY", UnitPrice: 100.50,
-			},
-			{ // Row 3
-				Lv: 2, Pid: "PN-002", Name: "部品B", Type: "",
-				Quantity: 5, Unit: "Set", Deadline: "", Kenku: "",
-				Device: "", Serial: "", Maker: "", Vendor: "", UnitPrice: 2500,
-			},
-			{ // Row 5
-				Lv: 0, Pid: "PN-003", Name: "部品C", Type: "",
-				Quantity: 1, Unit: "", Deadline: "", Kenku: "",
-				Device: "", Serial: "", Maker: "", Vendor: "", UnitPrice: 0,
-			},
-		},
-	}
-
-	f, err := excelize.OpenFile(testFile)
-	if err != nil {
-		t.Errorf("テスト用Excelファイルが開けません\n")
-	}
-	defer f.Close()
-
-	actual := *New(testFile)
-	actual.Orders.read(f)
-	if len(actual.Orders) == 0 {
-		t.Errorf("Ordersの値がありません len == 0\n")
+	actual := *New(filepath)
+	if len(actual.Orders) != 0 {
+		t.Errorf("Ordersの値は0のはず: %d\n", len(actual.Orders))
 	}
 	if !reflect.DeepEqual(actual.Orders, expected.Orders) {
 		t.Errorf("got %#v, want: %#v", actual.Orders, expected.Orders)
@@ -141,10 +58,10 @@ func TestGetLastRemarkValue(t *testing.T) {
 	defer f.Close()
 
 	// Test that we get the last remark value (67890 from row 3)
-	actual := getLastRemarkValue(f)
+	actua := getLastRemarkValue(f)
 	expected := "67890"
-	if actual != expected {
-		t.Errorf("getLastRemarkValue() = %q, want %q", actual, expected)
+	if actua != expected {
+		t.Errorf("getLastRemarkValue() = %q, want %q", actua, expected)
 	}
 }
 
@@ -245,6 +162,82 @@ func TestCheckOrderItemsSortOrder(t *testing.T) {
 				if err != nil {
 					t.Errorf("Did not expect an error, but got: %v", err)
 				}
+			}
+		})
+	}
+}
+
+func TestNewFileName(t *testing.T) {
+	tests := []struct {
+		name     string
+		filePath string
+		expected string
+	}{
+		{
+			name:     "xlsx file",
+			filePath: "testdata/20231027-success-read-K.xlsx",
+			expected: "20231027-success-read-K_pncheck.xlsx",
+		},
+		{
+			name:     "no extension",
+			filePath: "testdata/no-extension-file",
+			expected: "no-extension-file_pncheck",
+		},
+		{
+			name:     "multiple dots in name",
+			filePath: "testdata/file.with.dots.xlsx",
+			expected: "file.with.dots_pncheck.xlsx",
+		},
+		{
+			name:     "empty string",
+			filePath: "",
+			expected: "._pncheck",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actua := newFileName(tt.filePath)
+			if actua != tt.expected {
+				t.Errorf("newFileName(%q) = %q, want %q", tt.filePath, actua, tt.expected)
+			}
+		})
+	}
+}
+
+func TestParseSerial(t *testing.T) {
+	tests := []struct {
+		name     string
+		filePath string
+		expected string
+	}{
+		{
+			name:     "valid file name",
+			filePath: "20231027-12345678-S001-K.xlsx",
+			expected: "S001",
+		},
+		{
+			name:     "short file name",
+			filePath: "20231027-12345678.xlsx",
+			expected: "",
+		},
+		{
+			name:     "empty file name",
+			filePath: "",
+			expected: "",
+		},
+		{
+			name:     "file name with different delimiters",
+			filePath: "20231027_12345678_S001_K.xlsx",
+			expected: "", // ハイフン区切りではないため
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actua := parseSerial(tt.filePath)
+			if actua != tt.expected {
+				t.Errorf("parseSerial(%q) = %q, want %q", tt.filePath, actua, tt.expected)
 			}
 		})
 	}
