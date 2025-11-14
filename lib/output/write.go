@@ -6,6 +6,7 @@ package output
 
 import (
 	"embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -51,6 +52,10 @@ type Reports struct {
 	ExecutionTime,
 	BuildTime,
 	ServerAddress string
+	// アイコンのBase64エンコードされた文字列
+	IconBase64 string
+	// 生のアイコンコンテンツ (main.goから渡される)
+	RawIconContent []byte
 	// エラーリポート
 	SuccessItems,
 	WarningItems,
@@ -69,6 +74,9 @@ func (reports *Reports) Publish(outputPath string) error {
 		return err
 	}
 	defer out.Close()
+
+	// アイコンをBase64エンコードしてReportsに設定
+	reports.IconBase64 = base64.StdEncoding.EncodeToString(reports.RawIconContent)
 
 	return tmpl.Execute(out, reports)
 }

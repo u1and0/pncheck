@@ -125,19 +125,36 @@ type (
 	}
 )
 
+// New はファイルパスfからシート構造の初期値を出力する。
 func New(f string) *Sheet {
 	return &Sheet{
 		Config: Config{true, true},
 		Header: Header{
-			// ディレクトリを除いたファイル名のみ+surfix _pncheck
-			// ファイル名重複エラーを出さないためのダミーファイル名として、
-			// 末尾にpncheckをつける
-			FileName: filepath.Base(f) + "_pncheck",
-			// 発注区分をファイル名から分類
-			OrderType: parseOrderType(f),
+			FileName:  newFileName(f),    // _pncheckを付与
+			OrderType: parseOrderType(f), // 発注区分をファイル名から分類
+			Serial:    parseSerial(f),    // 号機をファイル名から取得
 		},
 		Orders: make(Orders, 0),
 	}
+}
+
+// newFileName はディレクトリを除いたファイル名のみ+surfix _pncheck
+// ファイル名重複エラーを出さないためのダミーファイル名として、
+// 末尾にpncheckをつける
+func newFileName(f string) string {
+	base, ext := filepath.Base(f), filepath.Ext(f)
+	return strings.TrimSuffix(base, ext) + "_pncheck" + ext
+}
+
+// parseSerial はファイルパスからSerialを読み込む
+func parseSerial(f string) string {
+	base, ext := filepath.Base(f), filepath.Ext(f)
+	noext := strings.TrimSuffix(base, ext)
+	fields := strings.Split(noext, "-")
+	if len(fields) < 3 {
+		return ""
+	}
+	return fields[2]
 }
 
 // Header.read : 入力II からヘッダー(Header)の読み込み
@@ -168,14 +185,6 @@ func (h *Header) read(f *excelize.File) error {
 
 	// getDispatchNumber 備考欄の出庫指示番号は入力Iから読み込む
 	h.Remark = getLastRemarkValue(f)
-
-	// ファイル名からSerialを読み込む
-	fileNameParts := strings.Split(h.FileName, "-")
-	if len(fileNameParts) >= 3 {
-		h.Serial = fileNameParts[2]
-	} else {
-		slog.Warn("ファイル名からSerialを読み込めませんでした。ファイル名が 'xxx-xxx-serial-xxx' の形式ではありません。", slog.String("filename", h.FileName))
-	}
 
 	// 印刷シート名の取得
 	printSheetName := getPrintSheet(f)

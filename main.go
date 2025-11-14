@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed" // embedパッケージをインポート
 	"fmt"
 	"log"
 	"os"
@@ -10,8 +11,11 @@ import (
 	"pncheck/lib/input"
 )
 
+//go:embed winres/icon.png
+var iconContent []byte // icon.pngをバイトスライスとして埋め込む
+
 const (
-	VERSION    = "v1.6.3"
+	VERSION    = "v1.6.4"
 	outputPath = "pncheck_report.html" // エラー出力ファイル
 )
 
@@ -31,6 +35,7 @@ func main() {
 	reports.BuildTime = input.BuildTime
 	reports.ExecutionTime = time.Now().Format("2006/01/02 15:04:05")
 	reports.ServerAddress = input.ServerAddress
+	reports.RawIconContent = iconContent // main.goで埋め込んだアイコンコンテンツを渡す
 
 	if verboseLevel > 0 {
 		b, err := reports.ToJSON()
