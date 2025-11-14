@@ -126,8 +126,8 @@ func collectLocalErrors(sheet *input.Sheet) (errs []string) {
 // handleOverridePost はエラー時のオーバーライドPOST処理を実行し、
 // reportを完全に更新します
 func handleOverridePost(report *output.Report, sheet *input.Sheet) error {
-	sheet.Config.Overridable = true
-	sheet.Config.Validatable = false
+	sheet.Config.Overridable = true  // サーバー側の自動更新を許可
+	sheet.Config.Validatable = false // あえてワーニングを表示するためエラーチェック無効化
 	body, code, err := sheet.Post()
 	if err != nil {
 		return fmt.Errorf("API通信エラー(2回目): %v", err)
@@ -184,9 +184,9 @@ func processFile(filePath string, resultChan chan<- output.Report, debugLevel in
 		return
 	}
 
-	// 2. 1回目のPOST (バリデーション有効)
-	sheet.Config.Validatable = true
-	sheet.Config.Overridable = false
+	// 2. 1回目のPOST
+	sheet.Config.Validatable = true  // エラーチェック有効化
+	sheet.Config.Overridable = false // サーバー側の自動更新を無効化
 	body, code, err := sheet.Post()
 	if err != nil {
 		report.StatusCode = 500 // API通信自体が失敗した場合はFatal
