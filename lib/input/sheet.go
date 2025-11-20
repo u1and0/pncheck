@@ -488,6 +488,68 @@ func getLastRemarkValue(f *excelize.File) string {
 	return re.FindString(remark)
 }
 
+// getFloatCellValue は指定されたセルから値をfloat64型で取得します。エラー時は0.0を返します。
+func getFloatCellValue(f *excelize.File, sheetName, axis string) float64 {
+	s := getCellValue(f, sheetName, axis)
+	val, err := parseFloatSafe(s)
+	if err != nil {
+		slog.Warn(
+			"セル値の数値変換に失敗しました。",
+			slog.String("sheet", sheetName),
+			slog.String("cell", axis),
+			slog.String("value", s),
+			slog.String("error", err.Error()),
+		)
+		return 0.0
+	}
+	return val
+}
+
+// sumCellRange は指定されたシートとセル範囲の値を合計します。
+// 例: "A1:A10"
+func sumCellRange(f *excelize.File, sheetName, cellRange string) (float64, error) {
+	total := 0.0
+	// セル範囲をパース (例: "A1:A10")
+	parts := strings.Split(cellRange, ":")
+	if len(parts) != 2 {
+		return 0.0, fmt.Errorf("無効なセル範囲形式: %s", cellRange)
+	}
+
+	startColInt, startRowInt, err := excelize.CellNameToCoordinates(parts[0])
+	if err != nil {
+		return 0.0, fmt.Errorf("開始セル参照のパースに失敗しました: %w", err)
+	}
+	endColInt, endRowInt, err := excelize.CellNameToCoordinates(parts[1])
+	if err != nil {
+		return 0.0, fmt.Errorf("終了セル参照のパースに失敗しました: %w", err)
+	}
+
+	startCol := startColInt
+	startRow := startRowInt
+	endCol := endColInt
+	endRow := endRowInt
+
+	// 現在の要件では単一列の範囲のみを想定しているため、列が異なる場合はエラーとする
+	if startCol != endCol {
+		return 0.0, fmt.Errorf("複数列にまたがる範囲の合計はサポートしていません: %s", cellRange)
+	}
+
+	for r := startRow; r <= endRow; r++ {
+		cellAxis, err := excelize.CoordinatesToCellName(startCol, r)
+		if err != nil {
+			slog.Warn(
+				"セル座標から名前への変換に失敗しました。",
+				slog.Int("col", startCol),
+				slog.Int("row", r),
+				slog.String("error", err.Error()),
+			)
+			continue
+		}
+		total += getFloatCellValue(f, sheetName, cellAxis)
+	}
+	return total, nil
+}
+
 // BuildRequestURL : ハッシュ値を基に要求票作成ページを呼び出すためのURLを返す
 func BuildRequestURL(sha256 string) string {
 	return fmt.Sprintf("%s/index?hash=%s#requirement-tab", ServerAddress, sha256)

@@ -65,6 +65,92 @@ func TestGetLastRemarkValue(t *testing.T) {
 	}
 }
 
+// TestSumCellRange tests the sumCellRange function
+func TestSumCellRange(t *testing.T) {
+	testDir := "testdata_sum_cell_range"
+	sheetName := "TestSheet"
+
+	// Create a test Excel file
+	testFile := createTestExcelFile(t, testDir, "sum_range_test.xlsx", func(f *excelize.File) {
+		f.NewSheet(sheetName)
+		f.SetCellValue(sheetName, "A1", 10.5)
+		f.SetCellValue(sheetName, "A2", 20)
+		f.SetCellValue(sheetName, "A3", "invalid") // Should be treated as 0
+		f.SetCellValue(sheetName, "A4", 5.5)
+		f.SetCellValue(sheetName, "B1", 100)
+		f.SetCellValue(sheetName, "C1", 200)
+	})
+
+	f, err := excelize.OpenFile(testFile)
+	if err != nil {
+		t.Fatalf("Failed to open test Excel file: %v", err)
+	}
+	defer f.Close()
+
+	tests := []struct {
+		name        string
+		cellRange   string
+		expectedSum float64
+		expectedErr bool
+	}{
+		{
+			name:        "Valid Range - Sum of floats and ints",
+			cellRange:   "A1:A4",
+			expectedSum: 36.0, // 10.5 + 20 + 0 (invalid) + 5.5
+			expectedErr: false,
+		},
+		{
+			name:        "Single Cell Range",
+			cellRange:   "A1:A1",
+			expectedSum: 10.5,
+			expectedErr: false,
+		},
+		{
+			name:        "Empty Range (cells don't exist)",
+			cellRange:   "D1:D5",
+			expectedSum: 0.0,
+			expectedErr: false,
+		},
+		{
+			name:        "Invalid Range Format",
+			cellRange:   "A1-A4",
+			expectedSum: 0.0,
+			expectedErr: true,
+		},
+		{
+			name:        "Multi-column Range",
+			cellRange:   "A1:B1",
+			expectedSum: 0.0,
+			expectedErr: true,
+		},
+		{
+			name:        "Range with empty cells",
+			cellRange:   "A4:A5", // A4 is 5.5, A5 is empty
+			expectedSum: 5.5,
+			expectedErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sum, err := sumCellRange(f, sheetName, tt.cellRange)
+
+			if tt.expectedErr {
+				if err == nil {
+					t.Errorf("Expected an error for range %q, but got none", tt.cellRange)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Did not expect an error for range %q, but got: %v", tt.cellRange, err)
+				}
+				if sum != tt.expectedSum {
+					t.Errorf("For range %q, got sum %.2f, want %.2f", tt.cellRange, sum, tt.expectedSum)
+				}
+			}
+		})
+	}
+}
+
 // TestCheckOrderItemsSortOrder は CheckOrderItemsSortOrder 関数のテストを行います。
 func TestCheckOrderItemsSortOrder(t *testing.T) {
 	// テストケースを定義
