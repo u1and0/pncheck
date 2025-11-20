@@ -11,6 +11,7 @@ package input
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/xuri/excelize/v2"
@@ -54,7 +55,75 @@ func ReadExcelToSheet(filePath string) (sheet Sheet, err error) {
 		return
 	}
 
+	// 各シートの合計値の検証
+	if err = validateExcelSums(f, filePath); err != nil {
+		return sheet, err
+	}
+
 	return
+}
+
+// validateExcelSums はExcelシート内の合計値が正しいか検証します。
+func validateExcelSums(f *excelize.File, filePath string) error {
+	// 入力IIの検証
+	sumInputII, err := sumCellRange(f, headerSheetName, "O10:O109")
+	if err != nil {
+		return fmt.Errorf("入力IIシート O10:O109 の合計計算エラー: %w", err)
+	}
+	valO7InputII := getFloatCellValue(f, headerSheetName, "O7")
+	if sumInputII != valO7InputII {
+		return fmt.Errorf("Error: Excelファイル '%s' のシート '%s' において、O10:O109 の合計 (%.2f) が O7 (%.2f) と異なります",
+			filePath, headerSheetName, sumInputII, valO7InputII)
+	}
+
+	// 印刷シート1の検証
+	printSheet1Name := getPrintSheet(f) // 動的にシート名を取得
+	sumPrint1, err := sumCellRange(f, printSheet1Name, "AY13:AY22")
+	if err != nil {
+		return fmt.Errorf("印刷シート1 '%s' AY13:AY22 の合計計算エラー: %w", printSheet1Name, err)
+	}
+	valAX7Print1 := getFloatCellValue(f, printSheet1Name, "AX7")
+	valAY23Print1 := getFloatCellValue(f, printSheet1Name, "AY23")
+	if sumPrint1 != valAX7Print1 || sumPrint1 != valAY23Print1 {
+		return fmt.Errorf("Error: Excelファイル '%s' のシート '%s' において、AY13:AY22 の合計 (%.2f) が AX7 (%.2f) または AY23 (%.2f) と異なります",
+			filePath, printSheet1Name, sumPrint1, valAX7Print1, valAY23Print1)
+	}
+
+	// 印刷シート2の検証
+	printSheet2Name := "印刷シート2"
+	if _, err := f.GetSheetIndex(printSheet2Name); err != nil {
+		slog.Warn("印刷シート2が見つかりません。スキップします。", slog.String("sheet", printSheet2Name))
+	} else {
+		sumPrint2, err := sumCellRange(f, printSheet2Name, "AY13:AY42")
+		if err != nil {
+			return fmt.Errorf("印刷シート2 '%s' AY13:AY42 の合計計算エラー: %w", printSheet2Name, err)
+		}
+		valAX7Print2 := getFloatCellValue(f, printSheet2Name, "AX7")
+		valAY43Print2 := getFloatCellValue(f, printSheet2Name, "AY43")
+		if sumPrint2 != valAX7Print2 || sumPrint2 != valAY43Print2 {
+			return fmt.Errorf("Error: Excelファイル '%s' のシート '%s' において、AY13:AY42 の合計 (%.2f) が AX7 (%.2f) または AY43 (%.2f) と異なります",
+				filePath, printSheet2Name, sumPrint2, valAX7Print2, valAY43Print2)
+		}
+	}
+
+	// 印刷シート3の検証
+	printSheet3Name := "印刷シート3"
+	if _, err := f.GetSheetIndex(printSheet3Name); err != nil {
+		slog.Warn("印刷シート3が見つかりません。スキップします。", slog.String("sheet", printSheet3Name))
+	} else {
+		sumPrint3, err := sumCellRange(f, printSheet3Name, "AY13:AY112")
+		if err != nil {
+			return fmt.Errorf("印刷シート3 '%s' AY13:AY112 の合計計算エラー: %w", printSheet3Name, err)
+		}
+		valAX7Print3 := getFloatCellValue(f, printSheet3Name, "AX7")
+		valAY113Print3 := getFloatCellValue(f, printSheet3Name, "AY113")
+		if sumPrint3 != valAX7Print3 || sumPrint3 != valAY113Print3 {
+			return fmt.Errorf("Error: Excelファイル '%s' のシート '%s' において、AY13:AY112 の合計 (%.2f) が AX7 (%.2f) または AY113 (%.2f) と異なります",
+				filePath, printSheet3Name, sumPrint3, valAX7Print3, valAY113Print3)
+		}
+	}
+
+	return nil
 }
 
 // validateFile : ファイルタイプを検証する
