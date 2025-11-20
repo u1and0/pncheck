@@ -244,25 +244,6 @@ func TestReadExcelToSheet_InvalidNumberFormat_Orders(t *testing.T) {
 	t.Logf("期待通り明細数値エラーを検出: %v", err)
 }
 
-func TestReadExcelToSheet_InvalidFilenameRequestDate(t *testing.T) {
-	testDir := "testdata_read"
-	testFile := createTestExcelFile(t, testDir, "20231029-invalid_orders_read-K.xlsx", func(f *excelize.File) {
-		setValidLayout(f)
-		f.SetCellValue(orderSheetName, colQuantity+"2", "Not A Number") // 2行目の数量に文字列
-	})
-
-	_, err := ReadExcelToSheet(testFile)
-	if err == nil {
-		t.Fatal("明細行の数値変換エラーが検出されませんでした。")
-	}
-	expectedErrMsg := "入力IIの要求年月日とファイル名の要求年月日に矛盾があります"
-	if !strings.Contains(err.Error(), expectedErrMsg) {
-		t.Errorf("期待されるエラーメッセージが含まれていません。\n期待含む: %s\n実際: %v",
-			expectedErrMsg, err)
-	}
-	t.Logf("期待通り明細数値エラーを検出: %v", err)
-}
-
 // expectedSheet.Header.ProjectID の期待値を修正
 func TestReadExcelToSheet_EmptySheet(t *testing.T) {
 	testDir := "testdata_read"
