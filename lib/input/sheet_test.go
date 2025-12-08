@@ -10,7 +10,7 @@ import (
 func TestNew(t *testing.T) {
 	filepath := "20220101-12345678-TBD-K.xlsx"
 	expected := Sheet{
-		Config{true, true},
+		Config{true, true, true},
 		Header{
 			FileName:  "20220101-12345678-TBD-K_pncheck.xlsx",
 			OrderType: 購入,
