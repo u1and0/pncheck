@@ -65,14 +65,19 @@ func ReadExcelToSheet(filePath string) (sheet Sheet, err error) {
 
 // validateExcelSums はExcelシート内の合計値が正しいか検証します。
 func validateExcelSums(f *excelize.File, filePath string) error {
+	const (
+		cellInput2Row = "O10:O109"
+		cellInput2Sum = "O7"
+	)
+
 	// 入力IIの検証
-	sumInputII, err := sumCellRange(f, headerSheetName, "O10:O109")
+	sumInputII, err := sumCellRange(f, headerSheetName, cellInput2Row)
 	if err != nil {
-		return fmt.Errorf("入力IIシート O10:O109 の合計計算エラー: %w", err)
+		return fmt.Errorf("入力IIシート 合計計算エラー: %w", err)
 	}
-	valO7InputII := getFloatCellValue(f, headerSheetName, "O7")
+	valO7InputII := getFloatCellValue(f, headerSheetName, cellInput2Sum)
 	if sumInputII != valO7InputII {
-		return fmt.Errorf("Error: Excelファイル '%s' のシート '%s' において、O10:O109 の合計 (%.2f) が O7 (%.2f) と異なります",
+		return fmt.Errorf("Error: Excelファイル '%s' のシート '%s' において、金額の合計 (%.2f) が 計算した合計値 (%.2f) と異なります",
 			filePath, headerSheetName, sumInputII, valO7InputII)
 	}
 
