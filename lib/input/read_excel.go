@@ -17,15 +17,17 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-var printSheetNames = []string{
+var sheetsToValidate = []string{
+	"入力II",
 	"10品目用",
 	"30品目用",
 	"100品目用",
 }
 
 type sheetValidationConfig struct {
-	cellRange string
-	cellSum   string
+	cellRange    string
+	cellSum      string
+	upperSumCell string // AX7 for print sheets, O7 for InputII
 }
 
 // ReadExcelToSheet は指定されたExcelファイルを読み込み、Sheet構造体に変換します。
@@ -76,25 +78,7 @@ func ReadExcelToSheet(filePath string) (sheet Sheet, err error) {
 
 // validateExcelSums はExcelシート内の合計値が正しいか検証します。
 func validateExcelSums(f *excelize.File, filePath string) error {
-	const (
-		cellInput2Row = "O10:O109"
-		cellInput2Sum = "O7"
-		printUpperSum = "AX7"
-	)
-
-	// 入力IIの検証
-	sumInputII, err := sumCellRange(f, headerSheetName, cellInput2Row)
-	if err != nil {
-		return fmt.Errorf("入力IIシート 合計計算エラー: %w", err)
-	}
-	valO7InputII := getFloatCellValue(f, headerSheetName, cellInput2Sum)
-	if sumInputII != valO7InputII {
-		return fmt.Errorf("Error: Excelファイル '%s' のシート '%s' において、金額の合計 (%.2f) が 計算した合計値 (%.2f) と異なります",
-			filePath, headerSheetName, sumInputII, valO7InputII)
-	}
-
-	// 各印刷シートの検証
-	for _, sheetName := range printSheetNames {
+	for _, sheetName := range sheetsToValidate {
 		if _, err := f.GetSheetIndex(sheetName); err != nil {
 			slog.Warn(fmt.Sprintf("シート '%s' が見つかりません。スキップします。", sheetName), slog.String("sheet", sheetName))
 			continue
@@ -110,7 +94,7 @@ func validateExcelSums(f *excelize.File, filePath string) error {
 		if err != nil {
 			return fmt.Errorf("印刷シート '%s' %s の合計計算エラー: %w", sheetName, config.cellRange, err)
 		}
-		valAX7 := getFloatCellValue(f, sheetName, printUpperSum)
+		valAX7 := getFloatCellValue(f, sheetName, config.upperSumCell)
 		valCellSum := getFloatCellValue(f, sheetName, config.cellSum)
 		if sum != valAX7 || sum != valCellSum {
 			return fmt.Errorf("Error: Excelファイル '%s' のシート '%s' において、%s の合計 (%.2f) が AX7 (%.2f) または %s (%.2f) と異なります",
@@ -124,12 +108,14 @@ func validateExcelSums(f *excelize.File, filePath string) error {
 // getSheetValidationConfig はシート名に基づいて検証設定を返します。
 func getSheetValidationConfig(sheetName string) (sheetValidationConfig, bool) {
 	switch sheetName {
+	case "入力II":
+		return sheetValidationConfig{cellRange: "O10:O109", cellSum: "O7", upperSumCell: "O7"}, true
 	case "10品目用":
-		return sheetValidationConfig{cellRange: "AY13:AY22", cellSum: "AY23"}, true
+		return sheetValidationConfig{cellRange: "AY13:AY22", cellSum: "AY23", upperSumCell: "AX7"}, true
 	case "30品目用":
-		return sheetValidationConfig{cellRange: "AY13:AY42", cellSum: "AY43"}, true
+		return sheetValidationConfig{cellRange: "AY13:AY42", cellSum: "AY43", upperSumCell: "AX7"}, true
 	case "100品目用":
-		return sheetValidationConfig{cellRange: "AY13:AY112", cellSum: "AY113"}, true
+		return sheetValidationConfig{cellRange: "AY13:AY112", cellSum: "AY113", upperSumCell: "AX7"}, true
 	default:
 		return sheetValidationConfig{}, false
 	}
