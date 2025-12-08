@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"log/slog"
+	"math"
 	"net/http"
 	"path/filepath"
 	"regexp"
@@ -75,6 +76,7 @@ type (
 	Config struct {
 		Validatable bool `json:"validatable"` // trueでバリデーション、エラーチェックする
 		Overridable bool `json:"overridable"` // trueで品名、型式、単位を自動修正する
+		Mergeable   bool `json:"mergeable"`   // trueで組部品非登録用シートを一つにまとめる
 	}
 	// Header : リクエストヘッダー
 	Header struct {
@@ -128,7 +130,7 @@ type (
 // New はファイルパスfからシート構造の初期値を出力する。
 func New(f string) *Sheet {
 	return &Sheet{
-		Config: Config{true, true},
+		Config: Config{true, true, true},
 		Header: Header{
 			FileName:  newFileName(f),    // _pncheckを付与
 			OrderType: parseOrderType(f), // 発注区分をファイル名から分類
@@ -243,6 +245,10 @@ func parseFloatSafe(s string) (float64, error) {
 }
 
 // PNSearchが求める日付の文字列型を修正して返す
+//
+// まずはdateLayout, dateLayoutSub に定めた文字列型として解釈し、
+// 失敗したらExcel日付型として解釈する。
+//
 // パースできないような文字列や
 // 空欄はPNSearch側でエラーにならないような処理となっているため
 // 影響がないと判断すれば空欄にして返すのが安全
@@ -270,7 +276,15 @@ func parseDateSafe(s string) (string, error) {
 		if err == nil {
 			return t.Format(dateLayout), nil
 		}
+
 	}
+
+	// 文字列型で読み込めなければExcelTime(1900年1月1日が0)
+	if v, err := strconv.ParseFloat(s, 64); err == nil && v > 0 {
+		t := excelTimeToGoTime(v)
+		return t.Format(dateLayout), nil
+	}
+
 	return s, err
 }
 
@@ -632,4 +646,24 @@ $ go build -ldflags="-X pncheck/lib/input.ServerAddress=http://localhost:8080"`,
 		)
 	}
 	return nil
+}
+
+// Excelのシリアル値をGoの time.Time に変換するヘルパー関数
+// Excel Time型は整数部分が日数を、小数部分が時刻を表す
+func excelTimeToGoTime(excelSerialValue float64) time.Time {
+	// 1900年ベースの場合の起点は 1900/1/1 (シリアル値 1)
+	excelSerialValue -= 2.0
+	// 日数部分の計算
+	days := math.Floor(excelSerialValue)
+	// 秒数の計算 (24時間 * 3600秒/時間 = 86400秒/日)
+	seconds := math.Round((excelSerialValue - days) * 86400.0)
+
+	// 基準日 (1900年1月1日)
+	// Goの time.Time は1900年1月1日 00:00:00 (JST) から日数を加算する
+	baseTime := time.Date(1900, time.January, 1, 0, 0, 0, 0, time.UTC)
+
+	// 基準日から日数と秒数を加算して返す
+	t := baseTime.AddDate(0, 0, int(days)).Add(time.Duration(seconds) * time.Second)
+
+	return t
 }

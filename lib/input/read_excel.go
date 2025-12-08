@@ -37,7 +37,8 @@ func ReadExcelToSheet(filePath string) (sheet Sheet, err error) {
 		return
 	}
 
-	f, err := excelize.OpenFile(filePath)
+	opts := excelize.Options{RawCellValue: true}
+	f, err := excelize.OpenFile(filePath, opts)
 	if err != nil {
 		return sheet, fmt.Errorf("ファイルを開けません '%s': %w\n", filePath, err)
 	}
