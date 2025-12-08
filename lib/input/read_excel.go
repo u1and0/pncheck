@@ -17,6 +17,17 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+var printSheetNames = []string{
+	"10品目用",
+	"30品目用",
+	"100品目用",
+}
+
+type sheetValidationConfig struct {
+	cellRange string
+	cellSum   string
+}
+
 // ReadExcelToSheet は指定されたExcelファイルを読み込み、Sheet構造体に変換します。
 // Excelのレイアウトは提供された書き込みコードに基づいて定数で定義されたものを仮定しています。
 func ReadExcelToSheet(filePath string) (sheet Sheet, err error) {
@@ -68,6 +79,7 @@ func validateExcelSums(f *excelize.File, filePath string) error {
 	const (
 		cellInput2Row = "O10:O109"
 		cellInput2Sum = "O7"
+		printUpperSum = "AX7"
 	)
 
 	// 入力IIの検証
@@ -81,12 +93,6 @@ func validateExcelSums(f *excelize.File, filePath string) error {
 			filePath, headerSheetName, sumInputII, valO7InputII)
 	}
 
-	var printSheetNames = []string{
-		"10品目用",
-		"30品目用",
-		"100品目用",
-	}
-
 	// 各印刷シートの検証
 	for _, sheetName := range printSheetNames {
 		if _, err := f.GetSheetIndex(sheetName); err != nil {
@@ -94,39 +100,39 @@ func validateExcelSums(f *excelize.File, filePath string) error {
 			continue
 		}
 
-		var (
-			cellRange string
-			cellSum   string
-		)
-
-		switch sheetName {
-		case "10品目用":
-			cellRange = "AY13:AY22"
-			cellSum = "AY23"
-		case "30品目用":
-			cellRange = "AY13:AY42"
-			cellSum = "AY43"
-		case "100品目用":
-			cellRange = "AY13:AY112"
-			cellSum = "AY113"
-		default:
+		config, ok := getSheetValidationConfig(sheetName)
+		if !ok {
 			slog.Warn(fmt.Sprintf("不明なシート名 '%s' です。スキップします。", sheetName), slog.String("sheet", sheetName))
 			continue
 		}
 
-		sum, err := sumCellRange(f, sheetName, cellRange)
+		sum, err := sumCellRange(f, sheetName, config.cellRange)
 		if err != nil {
-			return fmt.Errorf("印刷シート '%s' %s の合計計算エラー: %w", sheetName, cellRange, err)
+			return fmt.Errorf("印刷シート '%s' %s の合計計算エラー: %w", sheetName, config.cellRange, err)
 		}
-		valAX7 := getFloatCellValue(f, sheetName, "AX7")
-		valCellSum := getFloatCellValue(f, sheetName, cellSum)
+		valAX7 := getFloatCellValue(f, sheetName, printUpperSum)
+		valCellSum := getFloatCellValue(f, sheetName, config.cellSum)
 		if sum != valAX7 || sum != valCellSum {
 			return fmt.Errorf("Error: Excelファイル '%s' のシート '%s' において、%s の合計 (%.2f) が AX7 (%.2f) または %s (%.2f) と異なります",
-				filePath, sheetName, cellRange, sum, valAX7, cellSum, valCellSum)
+				filePath, sheetName, config.cellRange, sum, valAX7, config.cellSum, valCellSum)
 		}
 	}
 
 	return nil
+}
+
+// getSheetValidationConfig はシート名に基づいて検証設定を返します。
+func getSheetValidationConfig(sheetName string) (sheetValidationConfig, bool) {
+	switch sheetName {
+	case "10品目用":
+		return sheetValidationConfig{cellRange: "AY13:AY22", cellSum: "AY23"}, true
+	case "30品目用":
+		return sheetValidationConfig{cellRange: "AY13:AY42", cellSum: "AY43"}, true
+	case "100品目用":
+		return sheetValidationConfig{cellRange: "AY13:AY112", cellSum: "AY113"}, true
+	default:
+		return sheetValidationConfig{}, false
+	}
 }
 
 // validateFile : ファイルタイプを検証する
