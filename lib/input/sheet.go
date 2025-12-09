@@ -57,11 +57,12 @@ const (
 	colSerial      = "N" // 号機列
 	colMaker       = "O" // メーカ列
 	// colCompositionQty = "Y" // 構成数量 (固定値1のため読み込み不要)
-	colMisc           = "AJ" // 備考列
-	colUnit           = "BE" // 単位列
-	colVendor         = "BF" // 要望先列
-	colUnitPrice      = "BG" // 予定単価列
-	maxEmptyRowsCheck = 5    // 連続で何行空行なら明細終了とみなすか
+	colMisc           = "AJ"  // 備考列
+	colUnit           = "BE"  // 単位列
+	colVendor         = "BF"  // 要望先列
+	colUnitPrice      = "BG"  // 予定単価列
+	remarkCell        = "AJ3" // 備考(組部品用 出庫指示番号)
+	maxEmptyRowsCheck = 5     // 連続で何行空行なら明細終了とみなすか
 )
 
 var (
@@ -205,6 +206,9 @@ func (h *Header) read(f *excelize.File) error {
 
 	// 要求元は印刷シートから読み込む
 	h.UserSection = getCellValue(f, printSheetName, userSectionCell)
+
+	// 備考(組部品用 出庫指示番号)は入力1から読み込む
+	h.Remark = getCellValue(f, orderSheetName, remarkCell)
 	return nil
 }
 
