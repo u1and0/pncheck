@@ -74,22 +74,18 @@ func ReadExcelToSheet(filePath string) (sheet Sheet, err error) {
 	return
 }
 
-// validateExcelSums はExcelシート内の合計値が正しいか検証します。
+// ValidateExcelSums はExcelシート内の合計値が正しいか検証します。
 func ValidateExcelSums(filePath string) error {
 	opts := excelize.Options{RawCellValue: true}
 	f, err := excelize.OpenFile(filePath, opts)
 	if err != nil {
 		return fmt.Errorf("ファイルを開けません '%s': %w\n", filePath, err)
 	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			err = fmt.Errorf("警告: ファイルクローズエラー '%s': %v\n", filePath, err)
-		}
-		// defer だからfmt.Printf()だけにすべき？
-	}()
+	defer f.Close()
 
 	for _, sheetName := range sheetsToValidate {
-		if _, err := f.GetSheetIndex(sheetName); err != nil {
+		i, err := f.GetSheetIndex(sheetName)
+		if err != nil || i < 0 {
 			slog.Warn(fmt.Sprintf("シート '%s' が見つかりません。スキップします。", sheetName), slog.String("sheet", sheetName))
 			continue
 		}
