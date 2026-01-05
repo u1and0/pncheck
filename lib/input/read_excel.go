@@ -71,16 +71,23 @@ func ReadExcelToSheet(filePath string) (sheet Sheet, err error) {
 		return
 	}
 
-	// 各シートの合計値の検証
-	if err = validateExcelSums(f, filePath); err != nil {
-		return sheet, err
-	}
-
 	return
 }
 
 // validateExcelSums はExcelシート内の合計値が正しいか検証します。
-func validateExcelSums(f *excelize.File, filePath string) error {
+func ValidateExcelSums(filePath string) error {
+	opts := excelize.Options{RawCellValue: true}
+	f, err := excelize.OpenFile(filePath, opts)
+	if err != nil {
+		return fmt.Errorf("ファイルを開けません '%s': %w\n", filePath, err)
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			err = fmt.Errorf("警告: ファイルクローズエラー '%s': %v\n", filePath, err)
+		}
+		// defer だからfmt.Printf()だけにすべき？
+	}()
+
 	for _, sheetName := range sheetsToValidate {
 		if _, err := f.GetSheetIndex(sheetName); err != nil {
 			slog.Warn(fmt.Sprintf("シート '%s' が見つかりません。スキップします。", sheetName), slog.String("sheet", sheetName))
@@ -90,7 +97,7 @@ func validateExcelSums(f *excelize.File, filePath string) error {
 		// レンジの合計値算出
 		config, err := getSheetValidationConfig(f, sheetName)
 		if err != nil {
-			return fmt.Errorf("%sシートの合計計算エラー: %w", sheetName, err)
+			return fmt.Errorf("%sシートの合計計算設定エラー: %w", sheetName, err)
 		}
 		sum, err := sumCellRange(f, sheetName, config.cellRange)
 		if err != nil {

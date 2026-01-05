@@ -159,6 +159,15 @@ func processFile(filePath string, resultChan chan<- output.Report, debugLevel in
 	var report output.Report
 	report.Filename = filepath.Base(filePath)
 
+	// 各シートの合計値の検証
+	if err := input.ValidateExcelSums(filePath); err != nil {
+		report.StatusCode = 500
+		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("合計値算出エラー: %v", err))
+		resultChan <- report
+		return
+	}
+
+	// Excelファイルの読み込み
 	sheet, err := input.ReadExcelToSheet(filePath)
 	if err != nil {
 		report.StatusCode = 500
