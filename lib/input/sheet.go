@@ -208,7 +208,11 @@ func (h *Header) read(f *excelize.File) error {
 	h.UserSection = getCellValue(f, printSheetName, userSectionCell)
 
 	// 備考(組部品用 出庫指示番号)は入力1から読み込む
-	h.Remark = getCellValue(f, orderSheetName, remarkCell)
+	// "出庫指示番号33690による"のような文字列が入る
+	s := getCellValue(f, orderSheetName, remarkCell)
+	// この中から数値だけ抜き出して、string型で取り出す処理
+	re := regexp.MustCompile(`\d+`)
+	h.Remark = re.FindString(s)
 	return nil
 }
 
