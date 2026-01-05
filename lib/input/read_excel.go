@@ -13,10 +13,12 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/xuri/excelize/v2"
 )
 
+// 合計値を確認するシート名
 var sheetsToValidate = []string{
 	"入力II",
 	"10品目用",
@@ -85,21 +87,28 @@ func validateExcelSums(f *excelize.File, filePath string) error {
 			continue
 		}
 
-		config, ok := getSheetValidationConfig(sheetName)
-		if !ok {
-			slog.Warn(fmt.Sprintf("不明なシート名 '%s' です。スキップします。", sheetName), slog.String("sheet", sheetName))
-			continue
+		// レンジの合計値算出
+		config, err := getSheetValidationConfig(f, sheetName)
+		if err != nil {
+			return fmt.Errorf("%sシートの合計計算エラー: %w", sheetName, err)
 		}
-
 		sum, err := sumCellRange(f, sheetName, config.cellRange)
 		if err != nil {
-			return fmt.Errorf("印刷シート '%s' %s の合計計算エラー: %w", sheetName, config.cellRange, err)
+			return fmt.Errorf("%sシートの合計計算エラー: %w", sheetName, err)
 		}
-		valAX7 := getFloatCellValue(f, sheetName, config.upperSumCell)
+
+		// レンジの合計と上下それぞれの合計値が等しくなければエラーを返す
+		err = fmt.Errorf(
+			"%sシートにおいて、%s の合計が正しく計算できていません",
+			sheetName, config.cellRange,
+		)
+		valUpperSumCell := getFloatCellValue(f, sheetName, config.upperSumCell)
+		if sum != valUpperSumCell {
+			return err
+		}
 		valCellSum := getFloatCellValue(f, sheetName, config.cellSum)
-		if sum != valAX7 || sum != valCellSum {
-			return fmt.Errorf("Error: Excelファイル '%s' のシート '%s' において、%s の合計 (%.2f) が AX7 (%.2f) または %s (%.2f) と異なります",
-				filePath, sheetName, config.cellRange, sum, valAX7, config.cellSum, valCellSum)
+		if sum != valCellSum {
+			return err
 		}
 	}
 
@@ -107,19 +116,39 @@ func validateExcelSums(f *excelize.File, filePath string) error {
 }
 
 // getSheetValidationConfig はシート名に基づいて検証設定を返します。
-func getSheetValidationConfig(sheetName string) (sheetValidationConfig, bool) {
-	switch sheetName {
-	case "入力II":
-		return sheetValidationConfig{cellRange: "O10:O109", cellSum: "O7", upperSumCell: "O7"}, true
-	case "10品目用":
-		return sheetValidationConfig{cellRange: "AY13:AY22", cellSum: "AY23", upperSumCell: "AX7"}, true
-	case "30品目用":
-		return sheetValidationConfig{cellRange: "AY13:AY42", cellSum: "AY43", upperSumCell: "AX7"}, true
-	case "100品目用":
-		return sheetValidationConfig{cellRange: "AY13:AY112", cellSum: "AY113", upperSumCell: "AX7"}, true
-	default:
-		return sheetValidationConfig{}, false
+// 入力II シートの場合は固定値を返す。
+//
+// それ以外のシートでは、AY*** 数値が可変。
+// AU列をループで回していって、
+// "合計"という文字列が12行目以降に出てきた行を合計値の行とする。
+//
+// 例えばAU111 に"合計"という文字列がある場合、
+// cellSum=AY111 として合計値を計算する
+func getSheetValidationConfig(f *excelize.File, sheetName string) (sheetValidationConfig, error) {
+	if sheetName == "入力II" {
+		config := sheetValidationConfig{cellRange: "O10:O109", cellSum: "O7", upperSumCell: "O7"}
+		return config, nil
 	}
+
+	var sumRow = 13 // シート下側の合計値の行数
+	// AU *** に"合計"という文字列のサーチ
+	for {
+		ax := fmt.Sprintf("AU%d", sumRow)
+		s, err := f.GetCellValue(sheetName, ax)
+		if err != nil {
+			return sheetValidationConfig{}, err
+		}
+		if strings.TrimSpace(s) == "合計" {
+			break
+		}
+		sumRow++
+	}
+	config := sheetValidationConfig{
+		cellRange:    fmt.Sprintf("AY13:AY%d", sumRow-1),
+		cellSum:      fmt.Sprintf("AY%d", sumRow),
+		upperSumCell: "AX7",
+	}
+	return config, nil
 }
 
 // validateFile : ファイルタイプを検証する
