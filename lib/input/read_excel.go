@@ -20,7 +20,7 @@ import (
 
 // 合計値を確認するシート名
 var sheetsToValidate = []string{
-	"入力II",
+	"入力Ⅱ",
 	"10品目用",
 	"30品目用",
 	"100品目用",
@@ -128,7 +128,7 @@ func ValidateExcelSums(filePath string) error {
 // 例えばAU111 に"合計"という文字列がある場合、
 // cellSum=AY111 として合計値を計算する
 func getSheetValidationConfig(f *excelize.File, sheetName string) (sheetValidationConfig, error) {
-	if sheetName == "入力II" {
+	if sheetName == "入力Ⅱ" {
 		config := sheetValidationConfig{cellRange: "O10:O109", cellSum: "O7", upperSumCell: "O7"}
 		return config, nil
 	}
