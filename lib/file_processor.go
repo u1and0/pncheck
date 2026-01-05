@@ -100,8 +100,13 @@ func formatErrorMessage(e api.ErrorRecord) string {
 }
 
 // collectLocalErrors はローカルとAPIの一次検証エラーを収集します
-func collectLocalErrors(sheet *input.Sheet) (errs []string) {
-	// ローカルでの検証
+func collectLocalErrors(sheet *input.Sheet, filePath string) (errs []string) {
+	// 各シートの合計値の検証
+	if err := input.ValidateExcelSums(filePath); err != nil {
+		errs = append(errs, fmt.Sprintf("合計金額の確認: %s", err))
+	}
+
+	// 要求票の版番号
 	if err := sheet.CheckSheetVersion(); err != nil {
 		errs = append(errs, fmt.Sprintf("要求票の版番号の確認: %s", err))
 	}
@@ -115,6 +120,7 @@ func collectLocalErrors(sheet *input.Sheet) (errs []string) {
 			errs = append(errs, fmt.Sprintf("製番の値が異常です。%s", sheet.Header.ProjectID))
 		}
 		if class != ProjectAssyValue {
+			// ソートされていることの確認
 			if err := sheet.CheckOrderItemsSortOrder(); err != nil {
 				errs = append(errs, fmt.Sprintf("入力Iが納期と品番順にソートされていません: %v", err))
 			}
@@ -158,14 +164,6 @@ func handleOverridePost(report *output.Report, sheet *input.Sheet) error {
 func processFile(filePath string, resultChan chan<- output.Report, debugLevel int) {
 	var report output.Report
 	report.Filename = filepath.Base(filePath)
-
-	// 各シートの合計値の検証
-	if err := input.ValidateExcelSums(filePath); err != nil {
-		report.StatusCode = 500
-		report.ErrorMessages = append(report.ErrorMessages, fmt.Sprintf("合計値算出エラー: %v", err))
-		resultChan <- report
-		return
-	}
 
 	// Excelファイルの読み込み
 	sheet, err := input.ReadExcelToSheet(filePath)
@@ -217,15 +215,15 @@ func processFile(filePath string, resultChan chan<- output.Report, debugLevel in
 		return
 	}
 
-	// 3. エラー収集
-	errs := collectLocalErrors(&sheet)
+	// 3. ローカルのエラー収集
+	errs := collectLocalErrors(&sheet, filePath)
 	if errs != nil {
 		report.StatusCode = 500
 	} else {
 		report.StatusCode = output.StatusCode(code)
 	}
 
-	// 4. APIからのエラー
+	// 4. APIからのエラー収集
 	if resp.Message != "" && code >= 400 {
 		errs = append(errs, resp.Message)
 	}
