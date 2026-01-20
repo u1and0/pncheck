@@ -24,11 +24,11 @@ func ParseArguments(version string) (filePaths []string, verboseLevel int, err e
 
 	// 冗長出力
 	var verbose1 bool
-	flag.BoolVar(&verbose1, "V", false, "レポートの詳細を表示します")
+	flag.BoolVar(&verbose1, "V", false, "-Vの内容に加え、PNSearch APIの戻り値を表示します")
 
 	// API出力ログ
 	var verbose2 bool
-	flag.BoolVar(&verbose2, "VV", false, "APIの戻り値を表示します")
+	flag.BoolVar(&verbose2, "VV", false, "-VVの内容に加え、Excelシートの内容を表示します")
 
 	// Excel入力ログ
 	var verbose3 bool

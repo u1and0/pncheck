@@ -11,8 +11,8 @@ $ pncheck [オプション] <Excelファイルパス1> [Excelファイルパス2
 ### ⚙️ Options:
 
 - -V    レポートの詳細を表示します
-- -VV APIの戻り値を表示します
-- -VVV Excelシートへの入力を表示します
+- -VV -Vの内容に加え、PNSearch APIの戻り値を表示します
+- -VVV -VVの内容に加え、Excelシートの内容を表示します
 - -h,-help    ヘルプメッセージを表示します
 - -v, -version    バージョン情報を表示します
 
@@ -27,8 +27,7 @@ $ pncheck request1.xlsx request2.xlsx
 
 ![エクセルファイルをまとめてexe上にドラッグしてください。](doc/screen_shot_usage.png)
 
-![HTMLファイルが出力されます。エラーやワーニングの具体的な内容はファイル名をクリックすると、ブレイクダウンされて表示されます。また、詳細ボタンを押すことで開かれるPNSearchを開くと、直接修正することができます。](doc/screen_shot_result.png)
-
+![エラーや警告のメッセージは、ファイル名をクリックすると展開表示され、さらに詳細ボタンを押すとPNSearchで直接修正できます。](doc/screen_shot_result.png)
 
 ## ☢️エラーの内容について
 
@@ -37,10 +36,13 @@ PNSearchのヘルプを確認してください。
 
 ### pncheckが検査する項目
 サーバー側で確認できないエラーはpncheck側で確認してFatalを発行します。
-そのため、PNSearch のError, Warningを確認することができません。
 
 - 行の順序にソートがかけられていること(納期順 -> 品番順)
 - 要求票の版番号(バージョン)がPNSearchで作成されるものとと同一であること
+- 金額が正しく合計されていること。(AX7セルの値、AY13からAY最後の行の合計の値、AY最後のセルの値が一致すること)
+
+Fatalを発行するとPNSearch側へExcelの情報を伝達することができず、Errorと Warningが発行されません。
+ErrorとWarningを確認したい場合、上記の確認項目によるFatalがなくなるまでExcelを修正したうえで、再実行してください。
 
 #### Fatalが出た場合の確認項目
 - Excelが読み込めない場合
