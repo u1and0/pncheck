@@ -21,6 +21,7 @@ import (
 // 合計値を確認するシート名
 var sheetsToValidate = []string{
 	"入力Ⅱ",
+	"印刷用",
 	"10品目用",
 	"30品目用",
 	"100品目用",
