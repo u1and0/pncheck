@@ -15,7 +15,8 @@ import (
 var iconContent []byte // icon.pngをバイトスライスとして埋め込む
 
 const (
-	VERSION    = "v1.6.11"
+	VERSION = "v1.6.12"
+
 	outputPath = "pncheck_report.html" // エラー出力ファイル
 )
 
