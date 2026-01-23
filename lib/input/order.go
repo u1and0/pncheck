@@ -12,21 +12,21 @@ const (
 	購入  OrderType = "購入"
 	外注  OrderType = "外注"
 	出庫  OrderType = "出庫"
-	未選択 OrderType = "未選択" // 不正な区分の場合
+	組部品 OrderType = "組部品" // 不正な区分の場合
 )
 
 // parseOrderType ファイル名を引数に、"-"で区切った最後のブロックの値で発注区分を返す
 // S: 出庫 OrderType = "出庫"
 // K: 購入 OrderType = "購入"
 // G: 外注 OrderType = "外注"
-// それ以外: 未選択 OrderType = "未選択" // 不正な区分の場合
+// それ以外: 組部品 OrderType = "組部品" // 不正な区分の場合
 func parseOrderType(filePath string) OrderType {
 	base := filepath.Base(filePath)
 	// "-"で区切って4ブロック目の最初の文字
 	blocks := strings.Split(base, "-")
 	// fmt.Println("[DEBUG] parseOrderType() split filename: ", blocks)
 	if len(blocks) < 4 {
-		return "未選択"
+		return "組部品"
 	}
 	lastBlock := blocks[3]
 	// OrderTypeを決定
@@ -38,7 +38,7 @@ func parseOrderType(filePath string) OrderType {
 	case strings.HasPrefix(lastBlock, "G"):
 		return 外注
 	default:
-		return 未選択
+		return 組部品
 	}
 }
 
