@@ -75,9 +75,11 @@ var (
 type (
 	// Config : 設定スイッチ
 	Config struct {
-		Validatable bool `json:"validatable"` // trueでバリデーション、エラーチェックする
-		Overridable bool `json:"overridable"` // trueで品名、型式、単位を自動修正する
-		Mergeable   bool `json:"mergeable"`   // trueで組部品非登録用シートを一つにまとめる
+		Validatable    bool `json:"validatable"`    // trueでバリデーション、エラーチェックする
+		Overridable    bool `json:"overridable"`    // trueで品名、型式、単位を自動修正する
+		Mergeable      bool `json:"mergeable"`      // trueで組部品非登録用シートを一つにまとめる
+		Synchronizable bool `json:"synchronizable"` // trueでユーザーが制御できないシートの上書き処理
+		// Synchronizable を常にtrueにしないとindexやLvが入力されない
 	}
 	// Header : リクエストヘッダー
 	Header struct {
@@ -131,7 +133,7 @@ type (
 // New はファイルパスfからシート構造の初期値を出力する。
 func New(f string) *Sheet {
 	return &Sheet{
-		Config: Config{true, true, true},
+		Config: Config{true, true, true, true},
 		Header: Header{
 			FileName:  newFileName(f),    // _pncheckを付与
 			OrderType: parseOrderType(f), // 発注区分をファイル名から分類
