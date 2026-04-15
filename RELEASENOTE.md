@@ -1,4 +1,4 @@
-# Release note v1.6.12: 発注区分の変更 未選択→組部品
+# Release note v1.6.13: PNSearch改修に伴う変更
 
 ## 修正
-- 発注区分の変更 未選択→組部品　( PNSearch改修による修正 )
+- ConfigオプションにSynchronizable を追加 PNSearch改修に伴う変更
