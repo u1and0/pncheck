@@ -678,15 +678,3 @@ func excelTimeToGoTime(excelSerialValue float64) time.Time {
 
 	return t
 }
-
-func FutureRequestValidation(reqDate string) error {
-	now := time.Now()
-	req, err := time.Parse(DateLayout, reqDate)
-	if err != nil {
-		return fmt.Errorf("時間型の解釈に失敗しました: %w", err.Error())
-	}
-	if req.After(now) {
-		return fmt.Errorf("要求年月日 %s が未来の日付です", reqDate)
-	}
-	return nil
-}
