@@ -107,8 +107,13 @@ func collectLocalErrors(sheet *input.Sheet, filePath string) (errs []string) {
 	}
 
 	// 要求票の版番号
-	if err := sheet.CheckSheetVersion(); err != nil {
+	if err := input.CheckSheetVersion(sheet.Version); err != nil {
 		errs = append(errs, fmt.Sprintf("要求票の版番号の確認: %s", err))
+	}
+
+	// 出力日時が要求年月日より未来だったらエラー
+	if err := input.FutureRequestValidation(sheet.RequestDate); err != nil {
+		errs = append(errs, err.Error())
 	}
 
 	// 10桁目が6 == 組部品なのでソートチェックをしない

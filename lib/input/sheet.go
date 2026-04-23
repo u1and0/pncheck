@@ -20,7 +20,7 @@ import (
 
 const (
 	// サーバーサイドPNSearchが求める日付の型
-	dateLayout = "2006/01/02"
+	DateLayout = "2006/01/02"
 	// APIのエンドポイントパス
 	apiEndpointPath = "/api/v1/requests/confirm"
 	// サーバーの要求票バージョン取得AP
@@ -69,7 +69,7 @@ var (
 	// API通信のデフォルトタイムアウト
 	defaultTimeout = 30 * time.Second
 	// PNSearch規格外の日付文字列
-	dateLayoutSub = []string{"01-02-06", "2006/1/2", "1/2/2006"} // PNSearch規格外の日付文字列
+	dateLayoutSub = []string{"01-02-06", "2006/1/2", "1/2/2006"}
 )
 
 type (
@@ -172,7 +172,7 @@ func (h *Header) read(f *excelize.File) error {
 	// h.ProjectEda = getCellValue(f, headerSheetName, projectEdaCell)
 
 	h.ProjectName = getCellValue(f, headerSheetName, projectNameCell)
-	// 要求年月日と製番納期は dateLayout の型あるいは空欄に直す
+	// 要求年月日と製番納期は DateLayout の型あるいは空欄に直す
 	d := getCellValue(f, headerSheetName, requestDateCell)
 	if dd, err := parseDateSafe(d); err != nil {
 		return err
@@ -256,7 +256,7 @@ func parseFloatSafe(s string) (float64, error) {
 
 // PNSearchが求める日付の文字列型を修正して返す
 //
-// まずはdateLayout, dateLayoutSub に定めた文字列型として解釈し、
+// まずはDateLayout, dateLayoutSub に定めた文字列型として解釈し、
 // 失敗したらExcel日付型として解釈する。
 //
 // パースできないような文字列や
@@ -268,7 +268,7 @@ func parseDateSafe(s string) (string, error) {
 		return "", nil
 	}
 
-	_, err := time.Parse(dateLayout, s)
+	_, err := time.Parse(DateLayout, s)
 	if err == nil { // dataLayoutでパースできなければそのまま返す
 		return s, nil
 	}
@@ -284,7 +284,7 @@ func parseDateSafe(s string) (string, error) {
 		// 	fmt.Sprintf("[DEBUG]%sで%sをParseした結果: %s",
 		// 		layoutSub, s, t))
 		if err == nil {
-			return t.Format(dateLayout), nil
+			return t.Format(DateLayout), nil
 		}
 
 	}
@@ -292,7 +292,7 @@ func parseDateSafe(s string) (string, error) {
 	// 文字列型で読み込めなければExcelTime(1900年1月1日が0)
 	if v, err := strconv.ParseFloat(s, 64); err == nil && v > 0 {
 		t := excelTimeToGoTime(v)
-		return t.Format(dateLayout), nil
+		return t.Format(DateLayout), nil
 	}
 
 	return s, err
@@ -323,12 +323,12 @@ func processOrderRow(
 	}
 
 	order.Unit = getCellValue(f, orderSheetName, colUnit+strconv.Itoa(r))
-	// 要望納期は dateLayout の型あるいは空欄に直す
+	// 要望納期は DateLayout の型あるいは空欄に直す
 	d := getCellValue(f, orderSheetName, colDeadlineO+strconv.Itoa(r))
 	if dd, dateErr := parseDateSafe(d); err != nil {
 		err = fmt.Errorf(
 			"明細(%s) %d行目: 数量(%s)が正しい日付型%sではありません: %w",
-			orderSheetName, r, colDeadlineO, dateLayout, dateErr)
+			orderSheetName, r, colDeadlineO, DateLayout, dateErr)
 		return
 	} else {
 		order.Deadline = dd
@@ -589,7 +589,12 @@ func BuildRequestURL(sha256 string) string {
 //
 // 想定されるレスポンス:
 // {"sheetVersion":"M-0-814-04"}
-func (sheet *Sheet) CheckSheetVersion() error {
+func CheckSheetVersion(localVersion string) error {
+	// バージョンが空文字列の場合の警告（サーバー側またはローカル側）
+	if localVersion == "" {
+		slog.Warn("ローカルシートのバージョンが空です。サーバーと比較できません。")
+	}
+
 	// サーバーテンプレートのバージョンを取得
 	if ServerAddress == "" {
 		// ビルド時に ServerAddress が設定されていない場合は致命的エラー
@@ -635,10 +640,6 @@ $ go build -ldflags="-X pncheck/lib/input.ServerAddress=http://localhost:8080"`,
 
 	serverSheetVersion := serverResp.SheetVersion
 
-	// バージョンが空文字列の場合の警告（サーバー側またはローカル側）
-	if sheet.Header.Version == "" {
-		slog.Warn("ローカルシートのバージョンが空です。サーバーと比較できません。")
-	}
 	if serverSheetVersion == "" {
 		slog.Warn("サーバーからのシートバージョンが空です。比較に失敗しました。", slog.
 			String("apiURL", apiURL))
@@ -647,12 +648,12 @@ $ go build -ldflags="-X pncheck/lib/input.ServerAddress=http://localhost:8080"`,
 	}
 
 	// バージョンの比較
-	if sheet.Header.Version != serverSheetVersion {
+	if localVersion != serverSheetVersion {
 		return fmt.Errorf(
 			"要求票のバージョンが一致しません。"+
 				"ローカル: '%s', サーバー: %s' です。"+
 				"最新の要求票テンプレートをご利用ください。",
-			sheet.Header.Version, serverSheetVersion,
+			localVersion, serverSheetVersion,
 		)
 	}
 	return nil
@@ -676,4 +677,16 @@ func excelTimeToGoTime(excelSerialValue float64) time.Time {
 	t := baseTime.AddDate(0, 0, int(days)).Add(time.Duration(seconds) * time.Second)
 
 	return t
+}
+
+func FutureRequestValidation(reqDate string) error {
+	now := time.Now()
+	req, err := time.Parse(DateLayout, reqDate)
+	if err != nil {
+		return fmt.Errorf("時間型の解釈に失敗しました: %w", err.Error())
+	}
+	if req.After(now) {
+		return fmt.Errorf("要求年月日 %s が未来の日付です", reqDate)
+	}
+	return nil
 }
