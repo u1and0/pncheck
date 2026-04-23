@@ -20,7 +20,7 @@ import (
 
 const (
 	// サーバーサイドPNSearchが求める日付の型
-	dateLayout = "2006/01/02"
+	DateLayout = "2006/01/02"
 	// APIのエンドポイントパス
 	apiEndpointPath = "/api/v1/requests/confirm"
 	// サーバーの要求票バージョン取得AP
@@ -69,7 +69,7 @@ var (
 	// API通信のデフォルトタイムアウト
 	defaultTimeout = 30 * time.Second
 	// PNSearch規格外の日付文字列
-	dateLayoutSub = []string{"01-02-06", "2006/1/2", "1/2/2006"} // PNSearch規格外の日付文字列
+	dateLayoutSub = []string{"01-02-06", "2006/1/2", "1/2/2006"}
 )
 
 type (
@@ -172,7 +172,7 @@ func (h *Header) read(f *excelize.File) error {
 	// h.ProjectEda = getCellValue(f, headerSheetName, projectEdaCell)
 
 	h.ProjectName = getCellValue(f, headerSheetName, projectNameCell)
-	// 要求年月日と製番納期は dateLayout の型あるいは空欄に直す
+	// 要求年月日と製番納期は DateLayout の型あるいは空欄に直す
 	d := getCellValue(f, headerSheetName, requestDateCell)
 	if dd, err := parseDateSafe(d); err != nil {
 		return err
@@ -256,7 +256,7 @@ func parseFloatSafe(s string) (float64, error) {
 
 // PNSearchが求める日付の文字列型を修正して返す
 //
-// まずはdateLayout, dateLayoutSub に定めた文字列型として解釈し、
+// まずはDateLayout, dateLayoutSub に定めた文字列型として解釈し、
 // 失敗したらExcel日付型として解釈する。
 //
 // パースできないような文字列や
@@ -268,7 +268,7 @@ func parseDateSafe(s string) (string, error) {
 		return "", nil
 	}
 
-	_, err := time.Parse(dateLayout, s)
+	_, err := time.Parse(DateLayout, s)
 	if err == nil { // dataLayoutでパースできなければそのまま返す
 		return s, nil
 	}
@@ -284,7 +284,7 @@ func parseDateSafe(s string) (string, error) {
 		// 	fmt.Sprintf("[DEBUG]%sで%sをParseした結果: %s",
 		// 		layoutSub, s, t))
 		if err == nil {
-			return t.Format(dateLayout), nil
+			return t.Format(DateLayout), nil
 		}
 
 	}
@@ -292,7 +292,7 @@ func parseDateSafe(s string) (string, error) {
 	// 文字列型で読み込めなければExcelTime(1900年1月1日が0)
 	if v, err := strconv.ParseFloat(s, 64); err == nil && v > 0 {
 		t := excelTimeToGoTime(v)
-		return t.Format(dateLayout), nil
+		return t.Format(DateLayout), nil
 	}
 
 	return s, err
@@ -323,12 +323,12 @@ func processOrderRow(
 	}
 
 	order.Unit = getCellValue(f, orderSheetName, colUnit+strconv.Itoa(r))
-	// 要望納期は dateLayout の型あるいは空欄に直す
+	// 要望納期は DateLayout の型あるいは空欄に直す
 	d := getCellValue(f, orderSheetName, colDeadlineO+strconv.Itoa(r))
 	if dd, dateErr := parseDateSafe(d); err != nil {
 		err = fmt.Errorf(
 			"明細(%s) %d行目: 数量(%s)が正しい日付型%sではありません: %w",
-			orderSheetName, r, colDeadlineO, dateLayout, dateErr)
+			orderSheetName, r, colDeadlineO, DateLayout, dateErr)
 		return
 	} else {
 		order.Deadline = dd
@@ -379,49 +379,6 @@ func (o *Orders) read(f *excelize.File) error {
 	return nil
 }
 
-// CheckOrderItemsSortOrder : 注文明細の並び順チェック
-func (sheet *Sheet) CheckOrderItemsSortOrder() error {
-	orders := sheet.Orders
-	n := len(orders)
-
-	// 要素数が0または1の場合は常に正しい並び順とみなす
-	if n <= 1 {
-		return nil
-	}
-
-	// 各要素と次の要素のペアを比較していく
-	for i := 0; i < n-1; i++ {
-		current := orders[i]
-		next := orders[i+1]
-
-		// 比較ルール: 要望納期昇順 -> 品番昇順
-		// current が next より後に来ていたら不正
-
-		// 1. 要望納期を比較 (string型での比較)
-		// current.Deadline > next.Deadline の場合は不正
-		if current.Deadline > next.Deadline {
-			return fmt.Errorf(
-				"インデックス %d と %d で並べ替え順から外れた項目を注文しています：要望納期 '%s' は '%s' の後です。",
-				i, i+1, current.Deadline, next.Deadline,
-			)
-		}
-
-		// 2. 要望納期が同じ場合、品番を比較 (string型での比較)
-		// current.Deadline == next.Deadline かつ current.Pid > next.Pid の場合は不正
-		if current.Deadline == next.Deadline {
-			if current.Pid > next.Pid {
-				return fmt.Errorf("インデックス %d と %d で並べ替え順から外れた項目を注文しています：品番 '%s' は同じ要望納期 '%s' の '%s' の後にあります。",
-					i, i+1, current.Pid, next.Pid, current.Deadline)
-			}
-			// current.Pid <= next.Pid の場合は正しい順序、または同じ要素なのでOK
-		}
-
-		// current.Deadline < next.Deadline の場合、または current.Deadline == next.Deadline && current.Pid <= next.Pid の場合は正しい順序、次のペアへ進む
-	}
-
-	// 全てのペアの比較が完了し、不正な並び順が見つからなかった
-	return nil
-}
 
 // Sheet.Post() でサーバーへポスト
 // 戻り値はbody, code, error
@@ -577,85 +534,6 @@ func sumCellRange(f *excelize.File, sheetName, cellRange string) (float64, error
 // BuildRequestURL : ハッシュ値を基に要求票作成ページを呼び出すためのURLを返す
 func BuildRequestURL(sha256 string) string {
 	return fmt.Sprintf("%s/index?hash=%s#requirement-tab", ServerAddress, sha256)
-}
-
-// CheckSheetVersion : 要求票の版番号確認を行う
-// sheet.Header.Version は開いているExcelファイルから読み取ったシートのバージョンです。
-// この関数は、サーバーから最新のシートバージョンを取得し、sheet.Header.Version と比較します。
-// バージョンが一致しない場合、エラーを返します。
-//
-// 要求票の版番号の確認はサーバーへ GETメソッド
-// http://192.168.160.118:9000/api/v1/requests/version
-//
-// 想定されるレスポンス:
-// {"sheetVersion":"M-0-814-04"}
-func (sheet *Sheet) CheckSheetVersion() error {
-	// サーバーテンプレートのバージョンを取得
-	if ServerAddress == "" {
-		// ビルド時に ServerAddress が設定されていない場合は致命的エラー
-		log.Fatalln(
-			`APIサーバーアドレスが空です。ビルド時に設定する必要があります。
-$ go build -ldflags="-X pncheck/lib/input.ServerAddress=http://localhost:8080"`,
-		)
-	}
-
-	apiURL := ServerAddress + apiVersionEndpointPath
-	client := &http.Client{Timeout: defaultTimeout}
-
-	req, err := http.NewRequest("GET", apiURL, nil)
-	if err != nil {
-		return fmt.Errorf("HTTPリクエストの作成に失敗しました (%s): %w", apiURL, err)
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("APIへのリクエスト送信に失敗しました (%s): %w", apiURL, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body) // エラーボディも読み込んでログに含める
-		return fmt.Errorf(
-			"サーバーからのバージョン取得に失敗しました。ステータスコード: %d, レスポンス: %s",
-			resp.StatusCode,
-			string(bodyBytes),
-		)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("APIレスポンスボディの読み込みに失敗しました: %w", err)
-	}
-
-	var serverResp ServerVersionResponse
-	if err := json.Unmarshal(body, &serverResp); err != nil {
-		return fmt.Errorf("サーバー応答のJSON解析に失敗しました: %w, レスポンス: %s",
-			err, string(body))
-	}
-
-	serverSheetVersion := serverResp.SheetVersion
-
-	// バージョンが空文字列の場合の警告（サーバー側またはローカル側）
-	if sheet.Header.Version == "" {
-		slog.Warn("ローカルシートのバージョンが空です。サーバーと比較できません。")
-	}
-	if serverSheetVersion == "" {
-		slog.Warn("サーバーからのシートバージョンが空です。比較に失敗しました。", slog.
-			String("apiURL", apiURL))
-		// サーバーのバージョンが空の場合、有効なバージョンではないとみなしエラーを返す
-		return fmt.Errorf("サーバーから有効なシートバージョンが取得できませんでした。")
-	}
-
-	// バージョンの比較
-	if sheet.Header.Version != serverSheetVersion {
-		return fmt.Errorf(
-			"要求票のバージョンが一致しません。"+
-				"ローカル: '%s', サーバー: %s' です。"+
-				"最新の要求票テンプレートをご利用ください。",
-			sheet.Header.Version, serverSheetVersion,
-		)
-	}
-	return nil
 }
 
 // Excelのシリアル値をGoの time.Time に変換するヘルパー関数

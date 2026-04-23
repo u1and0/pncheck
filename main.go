@@ -15,7 +15,7 @@ import (
 var iconContent []byte // icon.pngをバイトスライスとして埋め込む
 
 const (
-	VERSION = "v1.6.13"
+	VERSION = "v1.6.14"
 
 	outputPath = "pncheck_report.html" // エラー出力ファイル
 )
@@ -25,6 +25,14 @@ func main() {
 	filePaths, verboseLevel, err := lib.ParseArguments(VERSION)
 	if err != nil {
 		log.Fatalln(err)
+	}
+
+	// ServerAddress はビルド時 -ldflags で注入される。未設定なら起動時に即終了
+	if input.ServerAddress == "" {
+		log.Fatalln(
+			"APIサーバーアドレスが未設定です。ビルド時に設定する必要があります。\n" +
+				`$ go build -ldflags="-X pncheck/lib/input.ServerAddress=http://localhost:8080"`,
+		)
 	}
 
 	// 各ファイルを処理

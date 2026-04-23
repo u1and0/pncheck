@@ -11,19 +11,12 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 
 	"pncheck/lib/api"
 	"pncheck/lib/input"
 	"pncheck/lib/output"
-)
-
-const (
-	ProjectIDLength  = 12
-	ProjectAssyDigit = 9
-	ProjectAssyValue = 6
 )
 
 // ProcessExcelFile は、複数のExcelファイルを並列に処理し、その結果を返します。
@@ -97,36 +90,6 @@ func formatErrorMessage(e api.ErrorRecord) string {
 		return fmt.Sprintf("%s: %s", e.Message, strings.Join(parts, " "))
 	}
 	return e.Message
-}
-
-// collectLocalErrors はローカルとAPIの一次検証エラーを収集します
-func collectLocalErrors(sheet *input.Sheet, filePath string) (errs []string) {
-	// 各シートの合計値の検証
-	if err := input.ValidateExcelSums(filePath); err != nil {
-		errs = append(errs, fmt.Sprintf("合計金額の確認: %s", err))
-	}
-
-	// 要求票の版番号
-	if err := sheet.CheckSheetVersion(); err != nil {
-		errs = append(errs, fmt.Sprintf("要求票の版番号の確認: %s", err))
-	}
-
-	// 10桁目が6 == 組部品なのでソートチェックをしない
-	if len(sheet.Header.ProjectID) < ProjectIDLength {
-		errs = append(errs, fmt.Sprintf("製番の桁数が異常です。%s", sheet.Header.ProjectID))
-	} else {
-		class, err := strconv.Atoi(sheet.Header.ProjectID[ProjectAssyDigit : ProjectAssyDigit+1])
-		if err != nil {
-			errs = append(errs, fmt.Sprintf("製番の値が異常です。%s", sheet.Header.ProjectID))
-		}
-		if class != ProjectAssyValue {
-			// ソートされていることの確認
-			if err := sheet.CheckOrderItemsSortOrder(); err != nil {
-				errs = append(errs, fmt.Sprintf("入力Iが納期と品番順にソートされていません: %v", err))
-			}
-		}
-	}
-	return
 }
 
 // handleOverridePost はエラー時のオーバーライドPOST処理を実行し、
@@ -216,7 +179,7 @@ func processFile(filePath string, resultChan chan<- output.Report, debugLevel in
 	}
 
 	// 3. ローカルのエラー収集
-	errs := collectLocalErrors(&sheet, filePath)
+	errs := input.CollectLocalErrors(&sheet, filePath)
 	if errs != nil {
 		report.StatusCode = 500
 	} else {

@@ -1,4 +1,4 @@
-# Release note v1.6.13: PNSearch改修に伴う変更
+# Release note v1.6.14: ローカルエラーチェックの追加
 
-## 修正
-- ConfigオプションにSynchronizable を追加 PNSearch改修に伴う変更
+## 機能追加
+- 確認日(pncheckを使った日)が要求年月日と等しいか、より後の日付であること。

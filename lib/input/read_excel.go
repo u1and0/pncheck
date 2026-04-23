@@ -11,21 +11,11 @@ package input
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 	"strings"
 
 	"github.com/xuri/excelize/v2"
 )
-
-// 合計値を確認するシート名
-var sheetsToValidate = []string{
-	"入力Ⅱ",
-	"印刷用",
-	"10品目用",
-	"30品目用",
-	"100品目用",
-}
 
 type sheetValidationConfig struct {
 	cellRange    string
@@ -73,50 +63,6 @@ func ReadExcelToSheet(filePath string) (sheet Sheet, err error) {
 	}
 
 	return
-}
-
-// ValidateExcelSums はExcelシート内の合計値が正しいか検証します。
-func ValidateExcelSums(filePath string) error {
-	opts := excelize.Options{RawCellValue: true}
-	f, err := excelize.OpenFile(filePath, opts)
-	if err != nil {
-		return fmt.Errorf("ファイルを開けません '%s': %w\n", filePath, err)
-	}
-	defer f.Close()
-
-	for _, sheetName := range sheetsToValidate {
-		i, err := f.GetSheetIndex(sheetName)
-		if err != nil || i < 0 {
-			slog.Warn(fmt.Sprintf("シート '%s' が見つかりません。スキップします。", sheetName), slog.String("sheet", sheetName))
-			continue
-		}
-
-		// レンジの合計値算出
-		config, err := getSheetValidationConfig(f, sheetName)
-		if err != nil {
-			return fmt.Errorf("%sシートの合計計算設定エラー: %w", sheetName, err)
-		}
-		sum, err := sumCellRange(f, sheetName, config.cellRange)
-		if err != nil {
-			return fmt.Errorf("%sシートの合計計算エラー: %w", sheetName, err)
-		}
-
-		// レンジの合計と上下それぞれの合計値が等しくなければエラーを返す
-		err = fmt.Errorf(
-			"%sシートにおいて、%s の合計が正しく計算できていません",
-			sheetName, config.cellRange,
-		)
-		valUpperSumCell := getFloatCellValue(f, sheetName, config.upperSumCell)
-		if sum != valUpperSumCell {
-			return err
-		}
-		valCellSum := getFloatCellValue(f, sheetName, config.cellSum)
-		if sum != valCellSum {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // getSheetValidationConfig はシート名に基づいて検証設定を返します。
