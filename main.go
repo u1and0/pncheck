@@ -27,6 +27,14 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	// ServerAddress はビルド時 -ldflags で注入される。未設定なら起動時に即終了
+	if input.ServerAddress == "" {
+		log.Fatalln(
+			"APIサーバーアドレスが未設定です。ビルド時に設定する必要があります。\n" +
+				`$ go build -ldflags="-X pncheck/lib/input.ServerAddress=http://localhost:8080"`,
+		)
+	}
+
 	// 各ファイルを処理
 	reports, err := lib.ProcessExcelFile(filePaths, verboseLevel)
 	if err != nil {
