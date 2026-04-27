@@ -133,7 +133,7 @@ type (
 // New はファイルパスfからシート構造の初期値を出力する。
 func New(f string) *Sheet {
 	return &Sheet{
-		Config: Config{true, true, true, true},
+		Config: Config{true, true, true, true}, // エラーチェックなどのPNSearchの機能をすべてtrueにする
 		Header: Header{
 			FileName:  newFileName(f),    // _pncheckを付与
 			OrderType: parseOrderType(f), // 発注区分をファイル名から分類
@@ -378,7 +378,6 @@ func (o *Orders) read(f *excelize.File) error {
 	}
 	return nil
 }
-
 
 // Sheet.Post() でサーバーへポスト
 // 戻り値はbody, code, error
