@@ -29,7 +29,7 @@ var sheetsToValidate = []string{
 	"100品目用",
 }
 
-// hiddenColumns : 非表示列一覧 (Yは数量固定値1のため対象外)
+// hiddenColumns : 隠し列一覧
 var hiddenColumns = []string{
 	"B", "C", "D", "H", "L", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Z",
 	"AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH", "AI", "AK", "AL", "AM", "AN",
