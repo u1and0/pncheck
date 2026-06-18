@@ -36,7 +36,7 @@ func main() {
 	}
 
 	// 各ファイルを処理
-	reports, err := lib.ProcessExcelFile(filePaths, verboseLevel)
+	reports, err := lib.ProcessExcelFiles(filePaths, verboseLevel)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "レポートファイルの出力に失敗しました: %v\n", err)
 	}
