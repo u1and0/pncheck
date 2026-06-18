@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/xuri/excelize/v2"
@@ -16,6 +17,7 @@ const (
 	projectIDLength  = 12
 	projectAssyDigit = 9
 	projectAssyValue = 6
+	lastRow          = 101 // 入力Iの最終行は101行固定
 )
 
 // 合計値を確認するシート名
@@ -27,6 +29,14 @@ var sheetsToValidate = []string{
 	"100品目用",
 }
 
+// hiddenColumns : 非表示列一覧 (Yは数量固定値1のため対象外)
+var hiddenColumns = []string{
+	"B", "C", "D", "H", "L", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Z",
+	"AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH", "AI", "AK", "AL", "AM", "AN",
+	"AO", "AP", "AQ", "AR", "AS", "AT", "AU", "AV", "AW", "AX", "AY", "AZ", "BA",
+	"BB", "BC", "BD",
+}
+
 // CollectLocalErrors はローカルとAPIの一次検証エラーを収集します
 func CollectLocalErrors(sheet *Sheet, filePath string) (errs []string) {
 	// 各シートの合計値の検証
@@ -34,13 +44,18 @@ func CollectLocalErrors(sheet *Sheet, filePath string) (errs []string) {
 		errs = append(errs, fmt.Sprintf("合計金額の確認: %s", err))
 	}
 
+	// 隠し列に余計な文字列がないか検証
+	if err := validateHiddenColumns(filePath); err != nil {
+		errs = append(errs, fmt.Sprintf("隠し列が空である確認: %s", err))
+	}
+
 	// 要求票の版番号
-	if err := checkSheetVersion(sheet.Version); err != nil {
+	if err := validateSheetVersion(sheet.Version); err != nil {
 		errs = append(errs, fmt.Sprintf("要求票の版番号の確認: %s", err))
 	}
 
 	// 出力日時が要求年月日より未来だったらエラー
-	if err := futureRequestValidation(sheet.RequestDate); err != nil {
+	if err := validateFutureRequest(sheet.RequestDate); err != nil {
 		errs = append(errs, err.Error())
 	}
 
@@ -165,7 +180,7 @@ func validateExcelSums(filePath string) error {
 	return nil
 }
 
-// checkSheetVersion : 要求票の版番号確認を行う
+// validateSheetVersion : 要求票の版番号確認を行う
 // sheet.Header.Version は開いているExcelファイルから読み取ったシートのバージョンです。
 // この関数は、サーバーから最新のシートバージョンを取得し、sheet.Header.Version と比較します。
 // バージョンが一致しない場合、エラーを返します。
@@ -175,7 +190,7 @@ func validateExcelSums(filePath string) error {
 //
 // 想定されるレスポンス:
 // {"sheetVersion":"M-0-814-04"}
-func checkSheetVersion(localVersion string) error {
+func validateSheetVersion(localVersion string) error {
 	// バージョンが空文字列の場合の警告（サーバー側またはローカル側）
 	if localVersion == "" {
 		slog.Warn("ローカルシートのバージョンが空です。サーバーと比較できません。")
@@ -244,8 +259,8 @@ func checkSheetVersion(localVersion string) error {
 	return nil
 }
 
-// futureRequestValidation : 出力日時が要求年月日より未来だったらエラー
-func futureRequestValidation(reqDate string) error {
+// validateFutureRequestValidation : 出力日時が要求年月日より未来だったらエラー
+func validateFutureRequest(reqDate string) error {
 	now := time.Now()
 	req, err := time.Parse(DateLayout, reqDate)
 	if err != nil {
@@ -256,4 +271,37 @@ func futureRequestValidation(reqDate string) error {
 	}
 	return nil
 
+}
+
+// IsEmptyColumn : 指定列のordersStartRowからlastRow までがすべて空文字かどうかを返す
+func IsEmptyColumn(f *excelize.File, sheetName, col string) bool {
+	for r := ordersStartRow; r <= lastRow; r++ {
+		if getCellValue(f, sheetName, col+strconv.Itoa(r)) != "" {
+			return false
+		}
+	}
+	return true
+}
+
+// validateHiddenColums : 入力Iの隠し列に入力がないか検証する
+func validateHiddenColumns(filePath string) error {
+	f, err := excelize.OpenFile(filePath, excelize.Options{RawCellValue: true})
+
+	if err != nil {
+		slog.Warn("ファイルを開けません。隠し列チェックをスキップします。", slog.String("filePath", filePath))
+		return nil
+	}
+	defer f.Close()
+
+	var dirty []string
+	for _, col := range hiddenColumns {
+		if !IsEmptyColumn(f, orderSheetName, col) {
+			dirty = append(dirty, col)
+		}
+	}
+
+	if len(dirty) > 0 {
+		return fmt.Errorf("隠し列に入力があります: %s", strings.Join(dirty, ", "))
+	}
+	return nil
 }
