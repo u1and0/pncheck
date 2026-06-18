@@ -19,12 +19,12 @@ import (
 	"pncheck/lib/output"
 )
 
-// ProcessExcelFile は、複数のExcelファイルを並列に処理し、その結果を返します。
+// ProcessExcelFiles は、複数のExcelファイルを並列に処理し、その結果を返します。
 //
 // @errors:
 //
 //	Reports.Classify(): unknown status code %d: must 200 <= code < 600
-func ProcessExcelFile(filePaths []string, debugLevel int) (output.Reports, error) {
+func ProcessExcelFiles(filePaths []string, debugLevel int) (output.Reports, error) {
 	var (
 		reports  output.Reports
 		fileChan = make(chan string, len(filePaths))
@@ -211,6 +211,10 @@ func processFile(filePath string, resultChan chan<- output.Report, debugLevel in
 			secondReport.StatusCode = 500
 			secondReport.ErrorMessages = []string{err.Error()}
 		}
-		resultChan <- secondReport
+		// 2回目POSTのSuccess(200-299)は偽物(1回目で同ファイル名のErrorを送信済み)なので除外
+		// Warning(300-399) / Error(400-499) / Fatal(500-) は正当な結果として送信
+		if secondReport.StatusCode >= 300 {
+			resultChan <- secondReport
+		}
 	}
 }

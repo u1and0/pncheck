@@ -40,7 +40,7 @@
               Fatal ({{len .FatalItems}}件)
             </button>
           </h2>
-          <div id="fatalCollapse" class="accordion-collapse collapse show" aria-labelledby="fatalHeader" data-bs-parent="#resultAccordion">
+          <div id="fatalCollapse" class="accordion-collapse collapse show" aria-labelledby="fatalHeader">
             <div class="accordion-body p-0">
               <ol class="list-group list-group-flush">
                 {{range .FatalItems}}
@@ -68,7 +68,7 @@
               Error ({{len .ErrorItems}}件)
             </button>
           </h2>
-          <div id="errorCollapse" class="accordion-collapse collapse show" aria-labelledby="errorHeader" data-bs-parent="#resultAccordion">
+          <div id="errorCollapse" class="accordion-collapse collapse show" aria-labelledby="errorHeader">
             <div class="accordion-body p-0">
               <ol class="list-group list-group-flush">
                 {{range .ErrorItems}}
@@ -99,7 +99,7 @@
               Warning ({{len .WarningItems}}件)
             </button>
           </h2>
-          <div id="warningCollapse" class="accordion-collapse collapse show" aria-labelledby="warningHeader" data-bs-parent="#resultAccordion">
+          <div id="warningCollapse" class="accordion-collapse collapse show" aria-labelledby="warningHeader">
             <div class="accordion-body p-0">
               <ol class="list-group list-group-flush">
                 {{range .WarningItems}}
@@ -130,7 +130,7 @@
               Success ({{len .SuccessItems}}件)
             </button>
           </h2>
-          <div id="successCollapse" class="accordion-collapse collapse" aria-labelledby="successHeader" data-bs-parent="#resultAccordion">
+          <div id="successCollapse" class="accordion-collapse collapse" aria-labelledby="successHeader">
             <div class="accordion-body p-0">
               <ol class="list-group list-group-flush">
                 {{range .SuccessItems}}

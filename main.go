@@ -15,7 +15,7 @@ import (
 var iconContent []byte // icon.pngをバイトスライスとして埋め込む
 
 const (
-	VERSION = "v1.6.14"
+	VERSION = "v1.6.15"
 
 	outputPath = "pncheck_report.html" // エラー出力ファイル
 )
@@ -36,7 +36,7 @@ func main() {
 	}
 
 	// 各ファイルを処理
-	reports, err := lib.ProcessExcelFile(filePaths, verboseLevel)
+	reports, err := lib.ProcessExcelFiles(filePaths, verboseLevel)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "レポートファイルの出力に失敗しました: %v\n", err)
 	}
