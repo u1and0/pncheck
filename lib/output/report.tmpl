@@ -49,7 +49,10 @@
                     <summary class="details-summary fw-bold">{{.Filename}}</summary>
                     <ul class="list-group list-group-flush mt-2">
                       {{range .ErrorMessages}}
-                      <li class="list-group-item list-group-item-secondary">{{.}}</li>
+                      <li class="list-group-item list-group-item-secondary">
+                        <button type="button" class="btn-close me-2 mt-1" aria-label="Close"></button>
+                        <span>{{.}}</span>
+                      </li>
                       {{end}}
                     </ul>
                   </details>
@@ -80,7 +83,10 @@
                     </summary>
                     <ul class="list-group list-group-flush mt-2">
                       {{range .ErrorMessages}}
-                      <li class="list-group-item list-group-item-danger">{{.}}</li>
+                      <li class="list-group-item list-group-item-danger">
+                        <button type="button" class="btn-close me-2 mt-1" aria-label="Close"></button>
+                        <span>{{.}}</span>
+                      </li>
                       {{end}}
                     </ul>
                   </details>
@@ -111,7 +117,10 @@
                     </summary>
                     <ul class="list-group list-group-flush mt-2">
                       {{range .ErrorMessages}}
-                      <li class="list-group-item list-group-item-warning">{{.}}</li>
+                      <li class="list-group-item list-group-item-warning d-flex align-items-start">
+                        <button type="button" class="btn-close me-2 mt-1" aria-label="Close"></button>
+                        <span>{{.}}</span>
+                      </li>
                       {{end}}
                     </ul>
                   </details>
@@ -154,5 +163,15 @@
 
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+      document.addEventListener("click", (event) => {
+        if (event.target.classList.contains("btn-close")) {
+          const li = event.target.closest("li");
+          if (li){
+            li. remove();
+          }
+        }
+      });
+    </script>
   </body>
 </html>
