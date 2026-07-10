@@ -133,7 +133,7 @@ type (
 // New はファイルパスfからシート構造の初期値を出力する。
 func New(f string) *Sheet {
 	return &Sheet{
-		Config: Config{true, true, true, true},
+		Config: Config{true, true, true, true}, // エラーチェックなどのPNSearchの機能をすべてtrueにする
 		Header: Header{
 			FileName:  newFileName(f),    // _pncheckを付与
 			OrderType: parseOrderType(f), // 発注区分をファイル名から分類
@@ -379,7 +379,6 @@ func (o *Orders) read(f *excelize.File) error {
 	return nil
 }
 
-
 // Sheet.Post() でサーバーへポスト
 // 戻り値はbody, code, error
 // code のデフォルト値は500
@@ -446,10 +445,7 @@ func getCellValue(f *excelize.File, sheetName, axis string) string {
 	return strings.ReplaceAll(s, "\r", " ")
 }
 
-// getLastRemarkValue finds the last non-empty row in column AJ (備考欄) and extracts
-// the dispatch number from it.
-func getLastRemarkValue(f *excelize.File) string {
-	// Find the last non-empty row in column AJ (備考欄)
+func lastOrderRow(f *excelize.File) int {
 	lastRow := ordersStartRow - 1 // Start from the row before the first data row
 	for r := ordersStartRow; ; r++ {
 		// Check if the main columns (品番, 品名, 数量) are all empty
@@ -462,7 +458,14 @@ func getLastRemarkValue(f *excelize.File) string {
 		}
 		lastRow = r // Update lastRow to current row
 	}
+	return lastRow
+}
 
+// getLastRemarkValue finds the last non-empty row in column AJ (備考欄) and extracts
+// the dispatch number from it.
+func getLastRemarkValue(f *excelize.File) string {
+	// Find the last non-empty row in column AJ (備考欄)
+	lastRow := lastOrderRow(f)
 	// Read the remark from the last non-empty row in column AJ
 	remark := getCellValue(f, orderSheetName, colMisc+strconv.Itoa(lastRow))
 	re := regexp.MustCompile(`\d+`) // 正規表現で数値のみ抜き出し

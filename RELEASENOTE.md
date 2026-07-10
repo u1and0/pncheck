@@ -1,7 +1,9 @@
-# Release note v1.6.15: トグル手動開閉と2回目POSTの偽Successの非表示
+# Release note v1.6.15r: 
 
-## 修正
-- HTML template accordion 手動開閉
-    - すべてのグループ(Fatal, Error, Warning, Success) は他のグループと干渉せず、すべて自動でトグル開閉する挙動に変更。
-- Error出た後のWarningチェックで、Successが出てしまう問題を解消。
-    - 2回目POSTのSuccess は偽物なので、reportに対して送信しない挙動に変更した。
+## 新機能
+- 隠し列の2行目から101行目が空文字以外だとFatalを挙げます。
+    - この機能は、FeatureStageに登録する際に、余計な情報が入っていると登録ができなくなる対策として、どの列に余計な文字列が入っているかを検知するために追加しました
+    - 隠し列一覧: "B", "C", "D", "H", "L", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Z",
+	"AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH", "AI", "AK", "AL", "AM", "AN",
+	"AO", "AP", "AQ", "AR", "AS", "AT", "AU", "AV", "AW", "AX", "AY", "AZ", "BA",
+	"BB", "BC", "BD"
