@@ -46,11 +46,14 @@
                 {{range .FatalItems}}
                 <li class="list-group-item">
                   <details>
-                    <summary class="details-summary fw-bold">{{.Filename}}</summary>
+                    <summary class="details-summary fw-bold">
+                      <button type="button" class="btn-close me-2 mt-1" aria-label="Close"></button>  <!-- ファイル名削除ボタン -->
+                      {{.Filename}}
+                    </summary>
                     <ul class="list-group list-group-flush mt-2">
                       {{range .ErrorMessages}}
                       <li class="list-group-item list-group-item-secondary">
-                        <button type="button" class="btn-close me-2 mt-1" aria-label="Close"></button>
+                        <button type="button" class="btn-close me-2 mt-1" aria-label="Close"></button>  <!-- エラー削除ボタン -->
                         <span>{{.}}</span>
                       </li>
                       {{end}}
@@ -78,13 +81,16 @@
                 <li class="list-group-item">
                   <details>
                     <summary class="details-summary d-flex justify-content-between align-items-start">
-                      <span class="fw-bold">{{.Filename}}</span>
+                      <span class="fw-bold">
+                        <button type="button" class="btn-close me-2 mt-1" aria-label="Close"></button>  <!-- ファイル名削除ボタン -->
+                        {{.Filename}}
+                      </span>
                       {{if .Link}}<a href="{{.Link}}" class="badge bg-danger text-decoration-none" target="_blank">詳細</a>{{end}}
                     </summary>
                     <ul class="list-group list-group-flush mt-2">
                       {{range .ErrorMessages}}
                       <li class="list-group-item list-group-item-danger">
-                        <button type="button" class="btn-close me-2 mt-1" aria-label="Close"></button>
+                        <button type="button" class="btn-close me-2 mt-1" aria-label="Close"></button>  <!-- エラー削除ボタン -->
                         <span>{{.}}</span>
                       </li>
                       {{end}}
@@ -112,13 +118,16 @@
                 <li class="list-group-item">
                    <details>
                     <summary class="details-summary d-flex justify-content-between align-items-start">
-                      <span class="fw-bold">{{.Filename}}</span>
+                      <span class="fw-bold">
+                        <button type="button" class="btn-close me-2 mt-1" aria-label="Close"></button>  <!-- ファイル名削除ボタン -->
+                        {{.Filename}}
+                      </span>
                       {{if .Link}}<a href="{{.Link}}" class="badge bg-warning text-dark text-decoration-none" target="_blank">詳細</a>{{end}}
                     </summary>
                     <ul class="list-group list-group-flush mt-2">
                       {{range .ErrorMessages}}
                       <li class="list-group-item list-group-item-warning d-flex align-items-start">
-                        <button type="button" class="btn-close me-2 mt-1" aria-label="Close"></button>
+                        <button type="button" class="btn-close me-2 mt-1" aria-label="Close"></button>  <!-- エラー削除ボタン -->
                         <span>{{.}}</span>
                       </li>
                       {{end}}
